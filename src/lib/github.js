@@ -1,7 +1,7 @@
 // Reads the pull requests that mention a Jira key from GitHub: merged state, changed files, diff, check runs.
 // `fetch` is passed in: Forge's fetch inside the app, the global fetch in tests and the CLI.
 const API = "https://api.github.com";
-const MAX_PRS = 5;
+const MAX_PRS = 6;
 
 function client(fetch, token) {
   const headers = { Accept: "application/vnd.github+json", "User-Agent": "proof-of-done-jira", "X-GitHub-Api-Version": "2022-11-28" };
