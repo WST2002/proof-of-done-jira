@@ -1,17 +1,30 @@
-// Forge entry points: the Jira workflow validator and the Rovo agent action share one check.
+// Forge entry points. The workflow validator, the Rovo agent action and the work item panel all share one check.
 import api from "@forge/api";
+import { kvs } from "@forge/kvs";
+import resolverModule from "@forge/resolver";
 import { linkedPullRequests } from "./lib/github.js";
 import { verdict } from "./lib/verdict.js";
+import { parseRepos, formatRepos, repoFor } from "./lib/config.js";
 
-// Set with: forge variables set GITHUB_REPO owner/name  and  forge variables set --encrypt GITHUB_TOKEN <token>
+const CONFIG = "config";
+const TOKEN = "github-token";
+
+async function settings() {
+  const saved = (await kvs.get(CONFIG)) ?? {};
+  const config = saved.defaultRepo || Object.keys(saved.projects ?? {}).length ? saved : { defaultRepo: process.env.GITHUB_REPO ?? "", projects: {} };
+  const token = (await kvs.getSecret(TOKEN)) || process.env.GITHUB_TOKEN;
+  return { config, token };
+}
+
 async function check(key) {
-  const repo = process.env.GITHUB_REPO;
-  if (!repo) return { done: false, message: "Proof of Done is not set up: an admin must set GITHUB_REPO (owner/name)." };
+  const { config, token } = await settings();
+  const repo = repoFor(config, key);
+  if (!repo) return { done: false, repo, prs: [], problems: [], message: "Proof of Done is not set up for this project yet: a Jira admin can add the GitHub repository under Apps → Proof of Done." };
   try {
-    const prs = await linkedPullRequests({ fetch: api.fetch, token: process.env.GITHUB_TOKEN, repo, key });
-    return verdict(prs);
+    const prs = await linkedPullRequests({ fetch: api.fetch, token, repo, key });
+    return { ...verdict(prs), repo, prs: prs.map(({ number, url, merged, checks, files }) => ({ number, url, merged, checks, files: files.length })) };
   } catch (e) {
-    return { done: false, message: `Could not check GitHub, so Done is blocked for now: ${e.message}` };
+    return { done: false, repo, prs: [], problems: [], message: `Could not check GitHub, so Done is blocked for now: ${e.message}` };
   }
 }
 
@@ -24,5 +37,27 @@ export async function checkDone(payload) {
   const key = payload.issueKey || payload.context?.jira?.issueKey;
   if (!key) return "Tell me which work item to check, for example SHOP-12.";
   const v = await check(key);
-  return { issueKey: key, done: v.done, message: v.message, problems: v.problems ?? [] };
+  return { issueKey: key, done: v.done, message: v.message, problems: v.problems, pullRequests: v.prs };
 }
+
+// @forge/resolver is CommonJS; in an ES module its class arrives as .default.
+const Resolver = resolverModule.default ?? resolverModule;
+const resolver = new Resolver();
+
+resolver.define("check", async ({ context }) => check(context.extension.issue.key));
+
+resolver.define("getSettings", async () => {
+  const { config } = await settings();
+  return { repos: formatRepos(config), hasToken: Boolean(await kvs.getSecret(TOKEN)) };
+});
+
+resolver.define("saveSettings", async ({ payload }) => {
+  const { config, problems } = parseRepos(payload.repos);
+  if (problems.length) return { ok: false, problems };
+  await kvs.set(CONFIG, config);
+  if (payload.clearToken) await kvs.deleteSecret(TOKEN);
+  else if (payload.token?.trim()) await kvs.setSecret(TOKEN, payload.token.trim());
+  return { ok: true, problems: [], hasToken: Boolean(await kvs.getSecret(TOKEN)) };
+});
+
+export const handler = resolver.getDefinitions();
