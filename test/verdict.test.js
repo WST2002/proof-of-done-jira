@@ -60,6 +60,11 @@ test("docs-only changes need no test change", () => {
   assert.deepEqual(kinds(verdict([pr])), []);
 });
 
+test("CI and editor config changes need no test change", () => {
+  const pr = { ...goodPr, files: [".github/workflows/test.yml"], diff: diff(".github/workflows/test.yml", ["node-version: 20"], ["node-version: 22"]) };
+  assert.deepEqual(kinds(verdict([pr])), []);
+});
+
 test("a weakened assertion blocks Done with file and line", () => {
   const pr = { ...goodPr, diff: diff("src/price.js", ["return p"], ["return p * 0.9"]) + diff("test/price.test.js", ["expect(f(10)).toBe(10)"], ["expect(f(10)).toBeDefined()"]) };
   const v = verdict([pr]);
