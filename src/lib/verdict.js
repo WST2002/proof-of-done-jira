@@ -45,12 +45,12 @@ function prProblems(pr) {
 }
 
 /** prs: [{ number, url, merged, files: [path], diff, checks: [{ name, status, conclusion }] }] */
-export function verdict(prs) {
+export function verdict(prs, { skipLabel = "no-code" } = {}) {
   const problems = prs.length
     ? prs.flatMap(prProblems)
     : [{ kind: "no-pr", text: "No pull request mentions this work item. Put the key in the PR title or branch name." }];
   const message = problems.length
-    ? ["Not done yet:", ...problems.map((p) => `• ${p.text}`), "Fix these, or ask an admin to move it if this work needs no code."].join("\n")
+    ? ["Not done yet:", ...problems.map((p) => `• ${p.text}`), `Fix these. If this work needs no code, add the label "${skipLabel}".`].join("\n")
     : "Done: every linked PR is merged, its checks passed and its tests were kept honest.";
   return { done: problems.length === 0, problems, message };
 }

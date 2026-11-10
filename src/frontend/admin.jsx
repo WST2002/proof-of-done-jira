@@ -6,6 +6,7 @@ import { invoke } from "@forge/bridge";
 function Admin() {
   const [repos, setRepos] = useState(null);
   const [token, setToken] = useState("");
+  const [skipLabel, setSkipLabel] = useState("");
   const [hasToken, setHasToken] = useState(false);
   const [problems, setProblems] = useState([]);
   const [saved, setSaved] = useState(false);
@@ -14,6 +15,7 @@ function Admin() {
   useEffect(() => {
     invoke("getSettings").then((s) => {
       setRepos(s.repos);
+      setSkipLabel(s.skipLabel);
       setHasToken(s.hasToken);
     });
   }, []);
@@ -21,7 +23,7 @@ function Admin() {
   const save = async (clearToken = false) => {
     setBusy(true);
     setSaved(false);
-    const r = await invoke("saveSettings", { repos, token, clearToken });
+    const r = await invoke("saveSettings", { repos, token, clearToken, skipLabel });
     setProblems(r.problems);
     if (r.ok) {
       setSaved(true);
@@ -41,7 +43,16 @@ function Admin() {
         <Label labelFor="repos">GitHub repositories</Label>
         <TextArea id="repos" value={repos} onChange={(e) => setRepos(e.target.value)} placeholder={"acme/shop\nPAY=acme/payments"} />
         <HelperMessage>One per line. A line like owner/name is used for every project; KEY=owner/name sets the repository for one Jira project.</HelperMessage>
-        {problems.map((p, i) => (
+        {problems.filter((p) => !p.startsWith("The label")).map((p, i) => (
+          <ErrorMessage key={i}>{p}</ErrorMessage>
+        ))}
+      </Stack>
+
+      <Stack space="space.100">
+        <Label labelFor="skip">Label for work that needs no code</Label>
+        <Textfield id="skip" value={skipLabel} onChange={(e) => setSkipLabel(e.target.value)} placeholder="no-code" />
+        <HelperMessage>Work items with this label (design, research, a meeting) can move to Done without a pull request. Leave it empty to check every work item.</HelperMessage>
+        {problems.filter((p) => p.startsWith("The label")).map((p, i) => (
           <ErrorMessage key={i}>{p}</ErrorMessage>
         ))}
       </Stack>

@@ -26,3 +26,18 @@ test("the saved config is shown back the same way", () => {
   const text = "acme/shop\nPAY=acme/payments";
   assert.equal(formatRepos(parseRepos(text).config), text);
 });
+
+test("a work item with the skip label needs no pull request", async () => {
+  const { skipReason, DEFAULT_SKIP_LABEL } = await import("../src/lib/config.js");
+  assert.equal(DEFAULT_SKIP_LABEL, "no-code");
+  assert.match(skipReason(["design", "No-Code"], "no-code"), /labelled no-code/);
+  assert.equal(skipReason(["design"], "no-code"), null);
+  assert.equal(skipReason([], ""), null);
+});
+
+test("the skip label must be a single Jira label", async () => {
+  const { checkSkipLabel } = await import("../src/lib/config.js");
+  assert.equal(checkSkipLabel("no-code"), null);
+  assert.equal(checkSkipLabel(""), null);
+  assert.match(checkSkipLabel("no code"), /spaces/);
+});

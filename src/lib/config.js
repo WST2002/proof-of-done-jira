@@ -31,3 +31,17 @@ export function repoFor(config, issueKey) {
   const project = String(issueKey).split("-")[0].toUpperCase();
   return config?.projects?.[project] || config?.defaultRepo || "";
 }
+
+// Work that needs no code (design, research, a meeting) carries this label and skips the check.
+export const DEFAULT_SKIP_LABEL = "no-code";
+
+/** Why a work item skips the check, or null. Labels compare without case. */
+export function skipReason(labels, skipLabel) {
+  if (!skipLabel) return null;
+  return (labels ?? []).some((l) => l.toLowerCase() === skipLabel.toLowerCase()) ? `Skipped: this work item is labelled ${skipLabel}, so it needs no pull request.` : null;
+}
+
+/** A problem with the admin's skip label, or null. Jira labels cannot contain spaces. */
+export function checkSkipLabel(label) {
+  return /\s/.test(label ?? "") ? `The label "${label}" has spaces; Jira labels are single words like no-code.` : null;
+}
