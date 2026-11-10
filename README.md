@@ -42,7 +42,7 @@ npm test
 
 ## License
 
-MIT
+MIT License
 
 ---
 
