@@ -39,7 +39,7 @@ function prProblems(pr) {
   if (findings.length) {
     const listed = findings.slice(0, MAX_FINDINGS).map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]}${f.text && f.kind !== "removed-tests" ? ` (${f.text})` : ""}`);
     if (findings.length > MAX_FINDINGS) listed.push(`and ${findings.length - MAX_FINDINGS} more`);
-    add("tampering", `test changes that can make checks pass without fixing anything: ${listed.join("; ")}.`);
+    add("tampering", `changes that can make checks pass without fixing anything: ${listed.join("; ")}.`);
   }
   return out;
 }
