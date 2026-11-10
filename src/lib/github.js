@@ -14,7 +14,7 @@ function client(fetch, token) {
 }
 
 // A key like SHOP-12 must match as a whole word, so SHOP-1 does not match SHOP-12.
-const mentions = (text, key) => new RegExp(`(^|[^A-Za-z0-9-])${key}(?![0-9])`, "i").test(text ?? "");
+export const mentions = (text, key) => new RegExp(`(^|[^A-Za-z0-9-])${key}(?![0-9])`, "i").test(text ?? "");
 
 async function pages(get, path, max = 3) {
   const all = [];

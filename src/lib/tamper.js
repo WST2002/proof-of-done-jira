@@ -9,7 +9,7 @@ const TEST_FILE = [
 ];
 const SKIP = /\.(skip|only|todo)\s*\(|\b(xit|xdescribe|xtest|fit|fdescribe)\s*\(|@pytest\.mark\.(skip|skipif|xfail)\b|@unittest\.skip|\bt\.Skip(Now|f)?\(|#\[ignore\]|@Disabled\b|@Ignore\b/;
 const ALWAYS_PASSES = /expect\(\s*(true|1)\s*\)\.(toBe|toEqual)\(\s*(true|1)\s*\)|\bassert\s+True\b|assert\.ok\(\s*true\s*\)|assertTrue\(\s*true\s*\)|\bassert\(\s*true\s*\)/;
-const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+\w[\w.]*\s*(is not None)?\s*$/;
+const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+\w[\w.]*\s*(is not None)?\s*$/;
 const STRONG = /\.(toBe|toEqual|toStrictEqual|toMatch|toContain|toHaveLength|toThrow|toHaveBeenCalledWith)\(\s*\S|\bassert\w*\s*\(?.*(==|!=|Equal|In\b)|\bassert\.(equal|deepEqual|strictEqual|deepStrictEqual|match|throws)\(/;
 const TEST_CASE = /^\s*(it|test|describe|xit|fit|xdescribe|fdescribe)(\.\w+)*\s*\(|^\s*(async\s+)?def\s+test_|^\s*func\s+Test\w*\(|@Test\b/;
 const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|#\s*noqa\b|#\s*type:\s*ignore|\/\/\s*nolint\b|@SuppressWarnings\b|#\s*pragma:\s*no cover/;
