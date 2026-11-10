@@ -22,7 +22,7 @@ test("a merged PR with passing test checks and an updated test is done", () => {
   assert.deepEqual(v.problems, []);
 });
 
-test("no linked pull request blocks Done", () => {
+test("no linked pull request (none at all) blocks Done", () => {
   const v = verdict([]);
   assert.equal(v.done, false);
   assert.deepEqual(kinds(v), ["no-pr"]);
