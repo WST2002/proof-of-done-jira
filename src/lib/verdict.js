@@ -3,7 +3,7 @@
 // and no test was weakened, skipped or deleted to get there.
 import { findTampering, isTestFile } from "./tamper.js";
 
-const NON_CODE = /\.(md|mdx|txt|rst|png|jpe?g|gif|svg|lock)$|(^|\/)(docs?)\/|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|LICENSE)$/i;
+const NON_CODE = /\.(md|mdx|txt|rst|png|jpe?g|gif|svg|lock)$|(^|\/)(docs?|\.github|\.vscode)\/|(^|\/)\.(editorconfig|gitignore|gitattributes)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|LICENSE)$/i;
 const RUNNING = new Set(["queued", "in_progress", "pending", "waiting", "requested"]);
 const FAILED = new Set(["failure", "cancelled", "timed_out", "action_required", "startup_failure"]);
 const MAX_FINDINGS = 4;
