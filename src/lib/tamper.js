@@ -44,6 +44,21 @@ export function parseDiff(diff) {
   return files;
 }
 
+// Words inside string literals (a test name, an example) are not code: blank them before matching.
+const withoutStrings = (text) => text.replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g, '""');
+
+// What a weak assertion checks: expect(X).toBeDefined() -> X, assert.ok(X) / assert(X) -> X, Python assert X -> X.
+function subject(text) {
+  const m = /expect\(\s*(.+?)\s*\)\s*\.(?:not\.)?to/.exec(text) ?? /\bassert(?:\.ok)?\(\s*([^,]+?)\s*(?:,|\)\s*;?\s*$)/.exec(text) ?? /\bassert\s+([\w.]+)/.exec(text);
+  return m?.[1]?.trim();
+}
+
+// A weak assertion is a weakening only when it replaces an exact assertion about the same thing in this hunk.
+const replacesStrong = (text, removed) => {
+  const what = subject(text);
+  return Boolean(what) && removed.some((r) => STRONG.test(r.text) && r.text.includes(what));
+};
+
 const short = (text) => {
   const t = text.trim();
   return t.length > 80 ? `${t.slice(0, 77)}…` : t;
@@ -62,13 +77,13 @@ export function findTampering(diff, ignore = () => false) {
     let removedCases = 0;
     let addedCases = 0;
     for (const { added, removed } of file.hunks) {
-      const removedStrong = removed.some((r) => STRONG.test(r.text));
       for (const { line, text } of added) {
         const add = (kind) => findings.push({ file: file.path, line, kind, text: short(text) });
-        if (SUPPRESS.test(text)) add("suppressed");
-        else if (test && SKIP.test(text)) add("skipped");
-        else if (test && ALWAYS_PASSES.test(text)) add("always-passes");
-        else if (test && removedStrong && WEAK.test(text)) add("weakened");
+        const code = withoutStrings(text);
+        if (SUPPRESS.test(code)) add("suppressed");
+        else if (test && SKIP.test(code)) add("skipped");
+        else if (test && ALWAYS_PASSES.test(code)) add("always-passes");
+        else if (test && WEAK.test(code) && replacesStrong(text, removed)) add("weakened");
         const before = removed.map((r) => THRESHOLD.exec(r.text)).find((m) => m && m[1] === THRESHOLD.exec(text)?.[1]);
         const after = THRESHOLD.exec(text);
         if (before && after && Number(after[2]) < Number(before[2])) add("threshold");
