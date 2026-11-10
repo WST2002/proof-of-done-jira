@@ -11,6 +11,8 @@ Proof of Done is a Forge app. When someone moves a work item to Done, it looks u
 
 If something is missing, Jira shows exactly what, with file and line, so the fix is obvious.
 
+Work that needs no code (design, research, a meeting) gets the label `no-code` and moves to Done without a pull request. Admins can change that label in the settings page.
+
 Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
 
 It also adds a **Rovo agent**: ask "Is SHOP-12 really done?" and it runs the same check and explains the answer.

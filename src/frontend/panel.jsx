@@ -22,9 +22,9 @@ function Panel() {
 
   return (
     <Stack space="space.150">
-      <SectionMessage appearance={result.done ? "success" : "warning"} title={result.done ? "Ready for Done" : "Not done yet"}>
+      <SectionMessage appearance={result.done ? "success" : "warning"} title={result.skipped ? "No code needed" : result.done ? "Ready for Done" : "Not done yet"}>
         {result.done ? (
-          <Text>Every linked pull request is merged, its checks passed and its tests were kept honest.</Text>
+          <Text>{result.skipped ? result.message : "Every linked pull request is merged, its checks passed and its tests were kept honest."}</Text>
         ) : (
           <Stack space="space.050">
             {(result.problems?.length ? result.problems.map((p) => p.text) : [result.message]).map((t, i) => (

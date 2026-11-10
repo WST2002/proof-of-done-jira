@@ -88,3 +88,8 @@ test("the message lists every problem and what to do", () => {
   assert.match(v.message, /not merged/i);
   assert.match(v.message, /no test run/i);
 });
+
+test("the block message tells people how to mark work that needs no code", () => {
+  assert.match(verdict([]).message, /label "no-code"/);
+  assert.match(verdict([], { skipLabel: "docs-only" }).message, /label "docs-only"/);
+});
