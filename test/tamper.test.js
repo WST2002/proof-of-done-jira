@@ -36,3 +36,24 @@ test("a Jira key matches only as a whole key", async () => {
   assert.equal(mentions("XPOD-1 something", "POD-1"), false);
   assert.equal(mentions("Fixes POD-1.", "POD-1"), true);
 });
+
+test("the words eslint-disable inside a string or test name are not a suppression", () => {
+  const d = diff("test/a.test.js", ["const a = 1;"], ['test("an eslint-disable is caught", () => {', '  assert.deepEqual(kinds("// eslint-disable-next-line"), ["suppressed"]);']);
+  assert.deepEqual(kinds(d), []);
+});
+
+test("real suppression comments are still caught", () => {
+  for (const line of ["// eslint-disable-next-line no-console", "/* eslint-disable */", "  // @ts-ignore", "x = 1  # noqa", "y = f()  # type: ignore"]) {
+    assert.deepEqual(kinds(diff("src/a.js", ["const a = 1;"], [line])), ["suppressed"], line);
+  }
+});
+
+test("a new assert.ok in the same hunk as an unrelated removed assert is not a weakening", () => {
+  const d = diff("test/a.test.js", ["  assert.deepEqual(await load({ repo }), []);"], ["  assert.deepEqual(await load({ repo, token }), []);", "  assert.ok(prs.some((p) => p.number === 8));"]);
+  assert.deepEqual(kinds(d), []);
+});
+
+test("weakening the same subject is still caught for jest and node:assert", () => {
+  assert.deepEqual(kinds(diff("test/a.test.js", ["  expect(total(cart)).toBe(90);"], ["  expect(total(cart)).toBeDefined();"])), ["weakened"]);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["  assert.equal(v.done, true);"], ["  assert.ok(v.done);"])), ["weakened"]);
+});
