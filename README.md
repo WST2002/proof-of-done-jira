@@ -30,7 +30,7 @@ forge install
 
 Then add the **Proof of Done** validator to the transition into Done in your Jira workflow.
 
-Pull requests are linked by the work item key in the PR title or branch name, for example `SHOP-12: round prices`.
+Pull requests are linked when the PR title or branch name contains the work item key, for example `SHOP-12: round prices`.
 
 ## Tests
 
