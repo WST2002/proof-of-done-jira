@@ -2,7 +2,9 @@ modules:
   jira:workflowValidator:
     - key: done-means-done-validator
       name: Done Means Done
-      description: Allows the transition only when the work item's pull requests are merged, their checks really ran and passed, and their tests were not weakened.
+      description: Allows the transition only when the work item's pull requests are
+        merged, their checks really ran and passed, and their tests were not
+        weakened.
       function: validate
   rovo:agent:
     - key: done-means-done-agent
@@ -39,11 +41,11 @@ modules:
 app:
   runtime:
     name: nodejs22.x
-  id: ari:cloud:ecosystem::app/to-be-registered
+  id: ari:cloud:ecosystem::app/487a9b05-d2bc-4e8f-98ce-2c533e95676f
 permissions:
   scopes:
     - read:jira-work
   external:
     fetch:
       backend:
-        - api.github.com
+        - address: api.github.com
