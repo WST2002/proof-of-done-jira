@@ -4,7 +4,7 @@ const API = "https://api.github.com";
 const MAX_PRS = 5;
 
 function client(fetch, token) {
-  const headers = { Accept: "application/vnd.github+json", "User-Agent": "done-means-done", "X-GitHub-Api-Version": "2022-11-28" };
+  const headers = { Accept: "application/vnd.github+json", "User-Agent": "proof-of-done-jira", "X-GitHub-Api-Version": "2022-11-28" };
   if (token) headers.Authorization = `Bearer ${token}`;
   return async (path) => {
     const res = await fetch(`${API}${path}`, { headers });

@@ -6,7 +6,7 @@ import { verdict } from "./lib/verdict.js";
 // Set with: forge variables set GITHUB_REPO owner/name  and  forge variables set --encrypt GITHUB_TOKEN <token>
 async function check(key) {
   const repo = process.env.GITHUB_REPO;
-  if (!repo) return { done: false, message: "Done Means Done is not set up: an admin must set GITHUB_REPO (owner/name)." };
+  if (!repo) return { done: false, message: "Proof of Done is not set up: an admin must set GITHUB_REPO (owner/name)." };
   try {
     const prs = await linkedPullRequests({ fetch: api.fetch, token: process.env.GITHUB_TOKEN, repo, key });
     return verdict(prs);

@@ -1,14 +1,14 @@
 modules:
   jira:workflowValidator:
-    - key: done-means-done-validator
-      name: Done Means Done
+    - key: proof-of-done-validator
+      name: Proof of Done
       description: Allows the transition only when the work item's pull requests are
         merged, their checks really ran and passed, and their tests were not
         weakened.
       function: validate
   rovo:agent:
-    - key: done-means-done-agent
-      name: Done Means Done
+    - key: proof-of-done-agent
+      name: Proof of Done
       description: Tells you whether a work item is really done, and what is missing if not.
       prompt: |
         You check whether a Jira work item is really done.
