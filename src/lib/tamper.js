@@ -7,7 +7,8 @@ const TEST_FILE = [
   /_test\.(py|go)$/,
   /Tests?\.(java|kt|cs)$/,
 ];
-const SKIP = /\.(skip|only|todo)\s*\(|\b(xit|xdescribe|xtest|fit|fdescribe)\s*\(|@pytest\.mark\.(skip|skipif|xfail)\b|@unittest\.skip|\bt\.Skip(Now|f)?\(|#\[ignore\]|@Disabled\b|@Ignore\b/;
+// A whole test turned off. A skip inside a test with a reason (t.skip("no clipboard here")) is an environment guard, not tampering.
+const SKIP = /\b(?:it|test|describe|context|suite|specify)\.(?:skip|only|todo)\s*\(|\b(?:xit|xdescribe|xtest|fit|fdescribe)\s*\(|@pytest\.mark\.(?:skip|skipif|xfail)\b|@unittest\.skip|#\[ignore\]|@Disabled\b|@Ignore\b/;
 const ALWAYS_PASSES = /expect\(\s*(true|1)\s*\)\.(toBe|toEqual)\(\s*(true|1)\s*\)|\bassert\s+True\b|assert\.ok\(\s*true\s*\)|assertTrue\(\s*true\s*\)|\bassert\(\s*true\s*\)/;
 const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+\w[\w.]*\s*(is not None)?\s*$/;
 const STRONG = /\.(toBe|toEqual|toStrictEqual|toMatch|toContain|toHaveLength|toThrow|toHaveBeenCalledWith)\(\s*\S|\bassert\w*\s*\(?.*(==|!=|Equal|In\b)|\bassert\.(equal|deepEqual|strictEqual|deepStrictEqual|match|throws)\(/;
@@ -45,7 +46,11 @@ export function parseDiff(diff) {
 }
 
 // Words inside string literals (a test name, an example) are not code: blank them before matching.
-const withoutStrings = (text) => text.replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g, '""');
+// Regex literals too: a "/" that follows an operator or bracket and is not a comment starts one.
+const withoutStrings = (text) =>
+  text
+    .replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g, '""')
+    .replace(/(^|[=(,:!&|?{};]\s*)\/(?![/*])(?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n])+\/[a-z]*/g, "$1/x/");
 
 // What a weak assertion checks: expect(X).toBeDefined() -> X, assert.ok(X) / assert(X) -> X, Python assert X -> X.
 function subject(text) {
