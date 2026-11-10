@@ -57,3 +57,18 @@ test("weakening the same subject is still caught for jest and node:assert", () =
   assert.deepEqual(kinds(diff("test/a.test.js", ["  expect(total(cart)).toBe(90);"], ["  expect(total(cart)).toBeDefined();"])), ["weakened"]);
   assert.deepEqual(kinds(diff("test/a.test.js", ["  assert.equal(v.done, true);"], ["  assert.ok(v.done);"])), ["weakened"]);
 });
+
+test("words inside a regex literal are not code either", () => {
+  const d = diff("src/rules.js", ["const A = 1;"], ["const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|#\s*noqa\b/;", "if (/eslint-disable/.test(line)) count++;"]);
+  assert.deepEqual(kinds(d), []);
+});
+
+test("a comment after code with a regex is still a suppression", () => {
+  assert.deepEqual(kinds(diff("src/a.js", ["const a = 1;"], ["const re = /a+/g; // eslint-disable-line no-control-regex"])), ["suppressed"]);
+});
+
+test("turning a test off is caught; a runtime skip with a reason is not", () => {
+  assert.deepEqual(kinds(diff("test/a.test.js", ["it('rounds', () => {"], ["it.skip('rounds', () => {"])), ["skipped"]);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["describe('cart', () => {"], ["describe.only('cart', () => {"])), ["skipped"]);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["  const tool = find();"], ["  if (!tool) return t.skip('no clipboard tool on this machine');"])), []);
+});
