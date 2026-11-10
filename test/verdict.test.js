@@ -18,7 +18,7 @@ const kinds = (v) => v.problems.map((p) => p.kind);
 
 test("a merged PR with passing test checks and an updated test is done", () => {
   const v = verdict([goodPr]);
-  assert.equal(v.done, true);
+  assert.ok(v.done);
   assert.deepEqual(v.problems, []);
 });
 
