@@ -1,0 +1,28 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { parseRepos, formatRepos, repoFor } from "../src/lib/config.js";
+
+test("a default repo and per-project repos are read from the admin's text", () => {
+  const { config, problems } = parseRepos("acme/shop\nPAY = acme/payments\nweb=https://github.com/acme/website.git\n# a comment\n");
+  assert.deepEqual(problems, []);
+  assert.deepEqual(config, { defaultRepo: "acme/shop", projects: { PAY: "acme/payments", WEB: "acme/website" } });
+});
+
+test("each work item uses its project's repo, or the default", () => {
+  const config = { defaultRepo: "acme/shop", projects: { PAY: "acme/payments" } };
+  assert.equal(repoFor(config, "PAY-12"), "acme/payments");
+  assert.equal(repoFor(config, "SHOP-3"), "acme/shop");
+  assert.equal(repoFor({ projects: {} }, "SHOP-3"), "");
+});
+
+test("bad lines are reported with their line number", () => {
+  const { problems } = parseRepos("acme/shop\nPAY=not a repo\n1X=acme/x");
+  assert.equal(problems.length, 2);
+  assert.match(problems[0], /Line 2/);
+  assert.match(problems[1], /Line 3/);
+});
+
+test("the saved config is shown back the same way", () => {
+  const text = "acme/shop\nPAY=acme/payments";
+  assert.equal(formatRepos(parseRepos(text).config), text);
+});
