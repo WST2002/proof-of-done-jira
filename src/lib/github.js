@@ -7,7 +7,12 @@ function client(fetch, token) {
   const headers = { Accept: "application/vnd.github+json", "User-Agent": "proof-of-done-jira", "X-GitHub-Api-Version": "2022-11-28" };
   if (token) headers.Authorization = `Bearer ${token}`;
   return async (path) => {
-    const res = await fetch(`${API}${path}`, { headers });
+    let res = await fetch(`${API}${path}`, { headers });
+    // An expired or revoked token answers 401; public repositories still work without it, so drop it and carry on.
+    if (res.status === 401 && headers.Authorization) {
+      delete headers.Authorization;
+      res = await fetch(`${API}${path}`, { headers });
+    }
     if (!res.ok) {
       const body = (await res.text()).slice(0, 200);
       if ((res.status === 403 || res.status === 429) && /rate limit/i.test(body))
