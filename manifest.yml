@@ -1,0 +1,49 @@
+modules:
+  jira:workflowValidator:
+    - key: done-means-done-validator
+      name: Done Means Done
+      description: Allows the transition only when the work item's pull requests are merged, their checks really ran and passed, and their tests were not weakened.
+      function: validate
+  rovo:agent:
+    - key: done-means-done-agent
+      name: Done Means Done
+      description: Tells you whether a work item is really done, and what is missing if not.
+      prompt: |
+        You check whether a Jira work item is really done.
+        When asked about a work item, call the check-done action with its key.
+        Report the result plainly: if it is not done, list each problem and what to fix.
+        Never say a work item is done unless the action says so.
+      conversationStarters:
+        - Is this work item really done?
+        - What is blocking this from Done?
+      actions:
+        - check-done
+  action:
+    - key: check-done
+      name: Check if a work item is really done
+      function: checkDone
+      actionVerb: GET
+      description: |
+        Checks the GitHub pull requests that mention a Jira work item key: merged, checks passed, tests changed and not weakened.
+      inputs:
+        issueKey:
+          title: Work item key
+          type: string
+          required: true
+          description: The Jira work item key, for example SHOP-12.
+  function:
+    - key: validate
+      handler: index.validate
+    - key: checkDone
+      handler: index.checkDone
+app:
+  runtime:
+    name: nodejs22.x
+  id: ari:cloud:ecosystem::app/to-be-registered
+permissions:
+  scopes:
+    - read:jira-work
+  external:
+    fetch:
+      backend:
+        - api.github.com
