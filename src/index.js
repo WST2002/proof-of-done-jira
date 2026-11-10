@@ -1,4 +1,5 @@
 // Forge entry points: the Jira workflow validator and the Rovo agent action share one check.
+// eslint-disable-next-line no-unused-vars
 import api from "@forge/api";
 import { linkedPullRequests } from "./lib/github.js";
 import { verdict } from "./lib/verdict.js";
