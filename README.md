@@ -15,8 +15,6 @@ Work that needs no code (design, research, a meeting) gets the label `no-code` a
 
 Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
 
-It also adds a **Rovo agent**: ask "Is SHOP-12 really done?" and it runs the same check and explains the answer.
-
 The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
 
 ## Setup
