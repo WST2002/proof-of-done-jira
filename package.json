@@ -1,0 +1,11 @@
+{
+  "name": "done-means-done",
+  "version": "0.1.0",
+  "description": "A Jira workflow validator: a work item moves to Done only when its pull request is merged, its checks really ran and passed, and its tests were not weakened.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
