@@ -33,3 +33,8 @@ test("a similar key does not pull in the wrong PR", async () => {
 test("a wrong repository gives a clear setup message", async () => {
   await assert.rejects(linkedPullRequests({ fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/no-such-repo-here", key: "POD-1" }), /not found or not readable: WST2002\/no-such-repo-here/);
 });
+
+test("an expired or wrong token does not break the check: it falls back to no token", async () => {
+  const prs = await linkedPullRequests({ fetch, token: "github_pat_expired_or_revoked_example", repo: "WST2002/proof-of-done-jira", key: "POD-1" });
+  assert.deepEqual(prs.map((p) => p.number), [1]);
+});
