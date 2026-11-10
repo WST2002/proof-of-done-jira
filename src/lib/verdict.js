@@ -23,7 +23,6 @@ function prProblems(pr) {
   const out = [];
   const add = (kind, text) => out.push({ kind, pr: pr.number, url: pr.url, text: `${name}: ${text}` });
 
-  if (!pr.merged) add("not-merged", "is not merged yet.");
 
   const ran = pr.checks.filter((c) => c.conclusion !== "skipped" && c.conclusion !== "neutral");
   const running = ran.filter((c) => RUNNING.has(c.status));
