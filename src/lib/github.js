@@ -8,13 +8,19 @@ function client(fetch, token) {
   if (token) headers.Authorization = `Bearer ${token}`;
   return async (path) => {
     const res = await fetch(`${API}${path}`, { headers });
-    if (!res.ok) throw new Error(`GitHub ${res.status} for ${path}: ${(await res.text()).slice(0, 200)}`);
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 200);
+      if ((res.status === 403 || res.status === 429) && /rate limit/i.test(body))
+        throw new Error("GitHub's rate limit for requests without a token was reached. An admin should set GITHUB_TOKEN (a read-only token) so checks keep working.");
+      if (res.status === 404) throw new Error(`GitHub repository not found or not readable: ${path.split("/").slice(2, 4).join("/")}. Check GITHUB_REPO, and set GITHUB_TOKEN for a private repository.`);
+      throw new Error(`GitHub ${res.status} for ${path}: ${body}`);
+    }
     return res.json();
   };
 }
 
 // A key like SHOP-12 must match as a whole word, so SHOP-1 does not match SHOP-12.
-const mentions = (text, key) => new RegExp(`(^|[^A-Za-z0-9-])${key}(?![0-9])`, "i").test(text ?? "");
+export const mentions = (text, key) => new RegExp(`(^|[^A-Za-z0-9-])${key}(?![0-9])`, "i").test(text ?? "");
 
 async function pages(get, path, max = 3) {
   const all = [];
@@ -30,11 +36,17 @@ async function pages(get, path, max = 3) {
 /** Pull requests in `repo` ("owner/name") whose title or branch mentions `key`. */
 export async function linkedPullRequests({ fetch, token, repo, key }) {
   const get = client(fetch, token);
+  // Search covers titles across the whole history; GitHub search does not look at branch names,
+  // so the most recently updated PRs are also checked by branch name.
+  const recent = await get(`/repos/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100`);
   const found = await get(`/search/issues?q=${encodeURIComponent(`${key} repo:${repo} is:pr`)}&per_page=20`);
+  // The list already carries title, branch, merge state and head commit; only older PRs found by search need a lookup.
+  const known = new Map(recent.filter((p) => mentions(p.title, key) || mentions(p.head?.ref, key)).map((p) => [p.number, p]));
+  const numbers = [...new Set([...known.keys(), ...(found.items ?? []).filter((i) => mentions(i.title, key)).map((i) => i.number)])];
   const prs = [];
-  for (const item of found.items ?? []) {
+  for (const number of numbers) {
     if (prs.length === MAX_PRS) break;
-    const pr = await get(`/repos/${repo}/pulls/${item.number}`);
+    const pr = known.get(number) ?? (await get(`/repos/${repo}/pulls/${number}`));
     if (!mentions(pr.title, key) && !mentions(pr.head?.ref, key)) continue;
     const files = await pages(get, `/repos/${repo}/pulls/${pr.number}/files`);
     const checks = await pages(get, `/repos/${repo}/commits/${pr.head.sha}/check-runs`, 1);
