@@ -37,7 +37,7 @@ async function remember(key, v) {
 }
 
 async function check(key) {
-  return remember(key, await evaluate(key));
+  return remember(key, { ...(await evaluate(key)), checkedAt: new Date().toISOString() });
 }
 
 async function evaluate(key) {

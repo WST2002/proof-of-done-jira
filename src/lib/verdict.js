@@ -51,6 +51,8 @@ function prProblems(pr, warnings) {
     const listed = findings.slice(0, MAX_FINDINGS).map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]}${f.text && f.kind !== "removed-tests" ? ` (${f.text})` : ""}`);
     if (findings.length > MAX_FINDINGS) listed.push(`and ${findings.length - MAX_FINDINGS} more`);
     add("tampering", `changes that can make checks pass without fixing anything: ${listed.join("; ")}.`);
+    // The panel shows each change as before → after: the moment a reviewer sees why green is not proof.
+    out.at(-1).evidence = findings.slice(0, MAX_FINDINGS).map(({ file, line, kind, text, before }) => ({ file, line, kind, says: DESCRIBE[kind], after: text, before }));
   }
   return out;
 }

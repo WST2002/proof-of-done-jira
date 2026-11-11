@@ -76,9 +76,10 @@ function subject(text) {
 }
 
 // A weak assertion is a weakening only when it replaces an exact assertion about the same thing in this hunk.
-const replacesStrong = (text, removed) => {
+// Returns the exact assertion it replaced, so the change can be shown as before → after.
+const replacedStrong = (text, removed) => {
   const what = subject(text);
-  return Boolean(what) && removed.some((r) => STRONG.test(r.text) && r.text.includes(what));
+  return what ? removed.find((r) => STRONG.test(r.text) && r.text.includes(what)) : undefined;
 };
 
 const short = (text) => {
@@ -109,18 +110,18 @@ export function findTampering(diff, ignore = () => false) {
     let addedCases = 0;
     for (const { added, removed } of file.hunks) {
       for (const { line, text } of added) {
-        const add = (kind) => findings.push({ file: file.path, line, kind, text: short(text) });
+        const add = (kind, before) => findings.push({ file: file.path, line, kind, text: short(text), ...(before ? { before: short(before) } : {}) });
         const code = withoutStrings(text);
         if (SUPPRESS.test(code)) add("suppressed");
-        else if (test && SKIP.test(code)) add("skipped");
+        else if (test && SKIP.test(code)) add("skipped", removed.find((r) => TEST_CASE.test(r.text))?.text);
         else if (test && ALWAYS_PASSES.test(code)) add("always-passes");
-        else if (test && WEAK.test(code) && replacesStrong(text, removed)) add("weakened");
+        else if (test && WEAK.test(code) && replacedStrong(text, removed)) add("weakened", replacedStrong(text, removed).text);
         if (test || TEST_CONFIG.test(file.path)) {
           if (RETRY.test(code)) add("retry");
           for (const re of TIMEOUTS) {
             const now = re.exec(code)?.[1];
             const was = removed.map((r) => re.exec(withoutStrings(r.text))?.[1]).find(Boolean);
-            if (now && was && Number(now) > Number(was)) { add("timeout"); break; }
+            if (now && was && Number(now) > Number(was)) { add("timeout", removed.find((r) => re.exec(withoutStrings(r.text)))?.text); break; }
           }
         } else if (SWALLOW.test(code) || (PY_EXCEPT.test(code) && /^\s*pass\s*$/.test(added[added.findIndex((a) => a.line === line) + 1]?.text ?? ""))) add("swallowed");
         const before = removed.map((r) => THRESHOLD.exec(r.text)).find((m) => m && m[1] === THRESHOLD.exec(text)?.[1]);
