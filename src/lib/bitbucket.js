@@ -69,3 +69,23 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
   }
   return prs;
 }
+
+const BB_CI = (statuses) => {
+  if (!statuses.length) return "none";
+  if (statuses.some((s) => s.state === "FAILED" || s.state === "STOPPED")) return "failed";
+  if (statuses.some((s) => s.state === "INPROGRESS")) return "running";
+  return "passed";
+};
+
+/** The commits of a Bitbucket pull request, oldest first (last 10), each with its own diff and build result. */
+export async function bitbucketCommitHistory({ fetch, token, repo, number }) {
+  const get = client(fetch, token);
+  const commits = (await all(get, `/repositories/${repo}/pullrequests/${number}/commits?pagelen=50`, 1)).reverse().slice(-10);
+  const out = [];
+  for (const c of commits) {
+    const diff = await get(`/repositories/${repo}/diff/${c.hash}`, true);
+    const statuses = await all(get, `/repositories/${repo}/commit/${c.hash}/statuses?pagelen=50`, 1);
+    out.push({ sha: c.hash, message: c.message, date: c.date, diff, ci: BB_CI(statuses) });
+  }
+  return out;
+}

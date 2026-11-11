@@ -43,6 +43,36 @@ function Evidence({ items }) {
   );
 }
 
+const CI = { passed: ["success", "CI passed"], failed: ["removed", "CI failed"], running: ["inprogress", "CI running"], none: ["default", "no CI"] };
+
+function Timeline({ number }) {
+  const [t, setT] = useState(null);
+  const [open, setOpen] = useState(false);
+  const load = async () => {
+    setOpen(true);
+    if (!t) setT(await invoke("timeline", { number }));
+  };
+  if (!open) return <Button appearance="subtle" onClick={load}>Show test timeline</Button>;
+  if (!t) return <Spinner label="Reading each commit" />;
+  if (!t.ok) return <Text>{t.message}</Text>;
+  return (
+    <Stack space="space.075">
+      <Strong>Test timeline</Strong>
+      {t.entries.map((e) => (
+        <Stack key={e.sha} space="space.050">
+          <Inline space="space.075" alignBlock="center" shouldWrap>
+            <Code>{e.short}</Code>
+            <Text>{e.title}</Text>
+            <Lozenge appearance={CI[e.ci][0]}>{CI[e.ci][1]}</Lozenge>
+            {e.findings.length ? <Lozenge appearance="removed">{e.findings.map((f) => f.says).join(", ")}</Lozenge> : <Lozenge appearance="success">tests kept</Lozenge>}
+          </Inline>
+          {e.note ? <SectionMessage appearance="warning" title={e.note} /> : null}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
 function Panel() {
   const context = useProductContext();
   const key = context?.extension?.issue?.key ?? "this work item";
@@ -100,6 +130,7 @@ function Panel() {
               <Text>{pr.files === 1 ? "1 file" : `${pr.files} files`}</Text>
               {pr.ai ? <Lozenge appearance="new">{`written with ${pr.ai}`}</Lozenge> : null}
             </Inline>
+            <Timeline number={pr.number} />
             <Inline space="space.075" shouldWrap>
               {pr.checks.length ? pr.checks.map((c, i) => <Lozenge key={i} appearance={CHECK_STATE(c)}>{`${c.name}: ${c.conclusion ?? c.status}`}</Lozenge>) : <Lozenge appearance="removed">no CI checks</Lozenge>}
             </Inline>

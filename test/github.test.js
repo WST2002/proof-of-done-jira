@@ -41,3 +41,11 @@ test("an expired or wrong token does not break the check: it falls back to no to
   const prs = await linkedPullRequests({ fetch, token: "github_pat_expired_or_revoked_example", repo: "WST2002/proof-of-done-jira", key: "POD-1" });
   assert.deepEqual(prs.map((p) => p.number), [1]);
 });
+
+test("reads a PR's commits with their own diffs and CI results for the timeline", async () => {
+  const { githubCommitHistory } = await import("../src/lib/github.js");
+  const commits = await githubCommitHistory({ fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-jira", number: 5 });
+  assert.ok(commits.length >= 1);
+  assert.match(commits.at(-1).diff, /assert\.ok\(v\.done\)/);
+  assert.ok(["passed", "failed", "running", "none"].includes(commits.at(-1).ci));
+});

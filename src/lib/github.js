@@ -70,3 +70,30 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
   }
   return prs;
 }
+
+const ciOf = (runs) => {
+  const ran = runs.filter((c) => c.conclusion !== "skipped" && c.conclusion !== "neutral");
+  if (!ran.length) return "none";
+  if (ran.some((c) => ["failure", "cancelled", "timed_out", "action_required", "startup_failure"].includes(c.conclusion))) return "failed";
+  if (ran.some((c) => c.status !== "completed")) return "running";
+  return "passed";
+};
+
+/** The commits of a pull request, oldest first (last 10), each with its own diff and CI result, for the timeline. */
+export async function githubCommitHistory({ fetch, token, repo, number }) {
+  const get = client(fetch, token);
+  const commits = (await get(`/repos/${repo}/pulls/${number}/commits?per_page=100`)).slice(-10);
+  const out = [];
+  for (const c of commits) {
+    const detail = await get(`/repos/${repo}/commits/${c.sha}`);
+    const runs = (await get(`/repos/${repo}/commits/${c.sha}/check-runs?per_page=50`)).check_runs ?? [];
+    out.push({
+      sha: c.sha,
+      message: c.commit?.message,
+      date: c.commit?.committer?.date,
+      diff: (detail.files ?? []).map((f) => `diff --git a/${f.filename} b/${f.filename}\n${f.status === "removed" ? "deleted file mode 100644\n" : f.status === "added" ? "new file mode 100644\n" : ""}--- a/${f.filename}\n+++ b/${f.filename}\n${f.patch ?? ""}\n`).join(""),
+      ci: ciOf(runs),
+    });
+  }
+  return out;
+}

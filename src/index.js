@@ -2,8 +2,9 @@
 import api, { route } from "@forge/api";
 import { kvs } from "@forge/kvs";
 import resolverModule from "@forge/resolver";
-import { linkedPullRequests } from "./lib/github.js";
-import { linkedBitbucketPullRequests } from "./lib/bitbucket.js";
+import { linkedPullRequests, githubCommitHistory } from "./lib/github.js";
+import { linkedBitbucketPullRequests, bitbucketCommitHistory } from "./lib/bitbucket.js";
+import { buildTimeline } from "./lib/timeline.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt } from "./lib/receipt.js";
 import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL } from "./lib/config.js";
@@ -88,6 +89,20 @@ const Resolver = resolverModule.default ?? resolverModule;
 const resolver = new Resolver();
 
 resolver.define("check", async ({ context }) => check(context.extension.issue.key));
+
+// Commit by commit: what each push did to the tests, and where CI turned green. Loaded on request (more API calls).
+resolver.define("timeline", async ({ payload, context }) => {
+  const { config, token, bitbucketToken } = await settings();
+  const repo = repoFor(config, context.extension.issue.key);
+  try {
+    const commits = repo.startsWith("bitbucket:")
+      ? await bitbucketCommitHistory({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), number: payload.number })
+      : await githubCommitHistory({ fetch: api.fetch, token, repo, number: payload.number });
+    return { ok: true, ...buildTimeline(commits) };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
+});
 
 resolver.define("getSettings", async () => {
   const { config, skipLabel } = await settings();
