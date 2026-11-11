@@ -6,7 +6,8 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js && node benchmark/run.js",
+    "benchmark": "node benchmark/run.js"
   },
   "dependencies": {
     "@forge/api": "^8.5.0",
