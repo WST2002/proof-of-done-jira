@@ -8,6 +8,8 @@ function Admin() {
   const [token, setToken] = useState("");
   const [skipLabel, setSkipLabel] = useState("");
   const [hasToken, setHasToken] = useState(false);
+  const [bbToken, setBbToken] = useState("");
+  const [hasBbToken, setHasBbToken] = useState(false);
   const [problems, setProblems] = useState([]);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -17,18 +19,21 @@ function Admin() {
       setRepos(s.repos);
       setSkipLabel(s.skipLabel);
       setHasToken(s.hasToken);
+      setHasBbToken(s.hasBitbucketToken);
     });
   }, []);
 
   const save = async (clearToken = false) => {
     setBusy(true);
     setSaved(false);
-    const r = await invoke("saveSettings", { repos, token, clearToken, skipLabel });
+    const r = await invoke("saveSettings", { repos, token, clearToken, skipLabel, bitbucketToken: bbToken, clearBitbucketToken: clearToken });
     setProblems(r.problems);
     if (r.ok) {
       setSaved(true);
       setToken("");
+      setBbToken("");
       setHasToken(r.hasToken);
+      setHasBbToken(r.hasBitbucketToken);
     }
     setBusy(false);
   };
@@ -42,7 +47,7 @@ function Admin() {
       <Stack space="space.100">
         <Label labelFor="repos">GitHub repositories</Label>
         <TextArea id="repos" value={repos} onChange={(e) => setRepos(e.target.value)} placeholder={"acme/shop\nPAY=acme/payments"} />
-        <HelperMessage>One per line. A line like owner/name is used for every project; KEY=owner/name sets the repository for one Jira project.</HelperMessage>
+        <HelperMessage>One per line. GitHub: owner/name. Bitbucket Cloud: bitbucket:workspace/name. A line on its own is used for every project; KEY=repository sets it for one Jira project.</HelperMessage>
         {problems.filter((p) => !p.startsWith("The label")).map((p, i) => (
           <ErrorMessage key={i}>{p}</ErrorMessage>
         ))}
@@ -63,13 +68,19 @@ function Admin() {
         <HelperMessage>Needed for private repositories, and recommended for public ones: GitHub allows only 60 requests an hour without one. A fine-grained token with read-only access to the repositories is enough. It is stored encrypted and never shown again.</HelperMessage>
       </Stack>
 
+      <Stack space="space.100">
+        <Label labelFor="bbtoken">Bitbucket token (optional)</Label>
+        <Textfield id="bbtoken" type="password" value={bbToken} onChange={(e) => setBbToken(e.target.value)} placeholder={hasBbToken ? "A token is saved. Type a new one to replace it." : "email:api-token or username:app-password"} />
+        <HelperMessage>Needed for private Bitbucket repositories. Read access to pull requests and repositories is enough. Stored encrypted and never shown again.</HelperMessage>
+      </Stack>
+
       <Inline space="space.100">
         <Button appearance="primary" onClick={() => save(false)} isDisabled={busy}>
           Save
         </Button>
-        {hasToken ? (
+        {hasToken || hasBbToken ? (
           <Button onClick={() => save(true)} isDisabled={busy}>
-            Remove saved token
+            Remove saved tokens
           </Button>
         ) : null}
       </Inline>

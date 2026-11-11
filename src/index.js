@@ -3,18 +3,21 @@ import api, { route } from "@forge/api";
 import { kvs } from "@forge/kvs";
 import resolverModule from "@forge/resolver";
 import { linkedPullRequests } from "./lib/github.js";
+import { linkedBitbucketPullRequests } from "./lib/bitbucket.js";
 import { verdict } from "./lib/verdict.js";
 import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
+const BB_TOKEN = "bitbucket-token";
 
 async function settings() {
   const saved = (await kvs.get(CONFIG)) ?? {};
   const config = saved.defaultRepo || Object.keys(saved.projects ?? {}).length ? saved : { defaultRepo: process.env.GITHUB_REPO ?? "", projects: {} };
   const token = (await kvs.getSecret(TOKEN)) || process.env.GITHUB_TOKEN;
   const skipLabel = saved.skipLabel ?? DEFAULT_SKIP_LABEL;
-  return { config, token, skipLabel };
+  const bitbucketToken = await kvs.getSecret(BB_TOKEN);
+  return { config, token, bitbucketToken, skipLabel };
 }
 
 async function labelsOf(key) {
@@ -37,13 +40,15 @@ async function check(key) {
 }
 
 async function evaluate(key) {
-  const { config, token, skipLabel } = await settings();
+  const { config, token, bitbucketToken, skipLabel } = await settings();
   const skipped = skipReason(await labelsOf(key), skipLabel);
   if (skipped) return { done: true, skipped: true, repo: "", prs: [], problems: [], message: skipped };
   const repo = repoFor(config, key);
   if (!repo) return { done: false, repo, prs: [], problems: [], message: "Proof of Done is not set up for this project yet: a Jira admin can add the GitHub repository under Apps → Proof of Done." };
   try {
-    const prs = await linkedPullRequests({ fetch: api.fetch, token, repo, key });
+    const prs = repo.startsWith("bitbucket:")
+      ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
+      : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
     return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files }) => ({ number, url, merged, checks, files: files.length })) };
   } catch (e) {
     return { done: false, repo, prs: [], problems: [], message: `Could not check GitHub, so Done is blocked for now: ${e.message}` };
@@ -70,7 +75,7 @@ resolver.define("check", async ({ context }) => check(context.extension.issue.ke
 
 resolver.define("getSettings", async () => {
   const { config, skipLabel } = await settings();
-  return { repos: formatRepos(config), skipLabel, hasToken: Boolean(await kvs.getSecret(TOKEN)) };
+  return { repos: formatRepos(config), skipLabel, hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
 });
 
 resolver.define("saveSettings", async ({ payload }) => {
@@ -81,7 +86,9 @@ resolver.define("saveSettings", async ({ payload }) => {
   await kvs.set(CONFIG, { ...config, skipLabel: (payload.skipLabel ?? "").trim() });
   if (payload.clearToken) await kvs.deleteSecret(TOKEN);
   else if (payload.token?.trim()) await kvs.setSecret(TOKEN, payload.token.trim());
-  return { ok: true, problems: [], hasToken: Boolean(await kvs.getSecret(TOKEN)) };
+  if (payload.clearBitbucketToken) await kvs.deleteSecret(BB_TOKEN);
+  else if (payload.bitbucketToken?.trim()) await kvs.setSecret(BB_TOKEN, payload.bitbucketToken.trim());
+  return { ok: true, problems: [], hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
 });
 
 export const handler = resolver.getDefinitions();

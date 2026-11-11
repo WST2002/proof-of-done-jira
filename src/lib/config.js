@@ -12,8 +12,11 @@ export function parseRepos(text) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
     const [left, right] = line.includes("=") ? line.split("=").map((s) => s.trim()) : [null, line];
-    const repo = right.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$|\/$/g, "");
-    if (!REPO.test(repo)) problems.push(`Line ${i + 1}: "${right}" is not a GitHub repository like owner/name.`);
+    // GitHub is the default; Bitbucket repositories are written bitbucket:workspace/repo (a bitbucket.org URL works too).
+    const bitbucket = /^bitbucket:|^https?:\/\/bitbucket\.org\//.test(right);
+    const path = right.replace(/^bitbucket:/, "").replace(/^https?:\/\/(github|bitbucket)\.(com|org)\//, "").replace(/\.git$|\/$/g, "");
+    const repo = bitbucket ? `bitbucket:${path}` : path;
+    if (!REPO.test(path)) problems.push(`Line ${i + 1}: "${right}" is not a repository like owner/name or bitbucket:workspace/name.`);
     else if (left === null) config.defaultRepo = repo;
     else if (!PROJECT.test(left.toUpperCase())) problems.push(`Line ${i + 1}: "${left}" is not a Jira project key like SHOP.`);
     else config.projects[left.toUpperCase()] = repo;

@@ -2,7 +2,7 @@
 
 A Jira work item moves to **Done** only when the work behind it is really done.
 
-Proof of Done is a Forge app. When someone moves a work item to Done, it looks up the GitHub pull requests that mention the item's key and blocks the move unless:
+Proof of Done is a Forge app. When someone moves a work item to Done, it looks up the GitHub or Bitbucket Cloud pull requests that mention the item's key and blocks the move unless:
 
 - every linked pull request is **merged**,
 - its CI checks **ran and passed** (skipped or still-running checks don't count),
@@ -21,7 +21,7 @@ The test-tampering rules are the same ones used by [proof-of-done](https://githu
 
 ## Setup
 
-**Install from the link** (no code needed): open the installation link, choose your Jira site, then in Jira go to **Apps → Manage apps → Proof of Done** and enter the GitHub repository for each project (and a read-only token for private repositories). Then add the **Proof of Done** validator to the transition into Done.
+**Install from the link** (no code needed): open the installation link, choose your Jira site, then in Jira go to **Apps → Manage apps → Proof of Done** and enter the repository for each project: `owner/name` for GitHub, `bitbucket:workspace/name` for Bitbucket Cloud (and a read-only token for private repositories). Then add the **Proof of Done** validator to the transition into Done.
 
 **Or deploy your own copy** with Node.js 22 and the Forge CLI:
 
@@ -40,7 +40,7 @@ Pull requests are linked when the PR title or branch name contains the work item
 npm test
 ```
 
-`test/verdict.test.js`, `test/tamper.test.js` and `test/config.test.js` cover the rules and settings. `test/github.test.js` reads real pull requests from GitHub (no mocks); set `GITHUB_TOKEN` to avoid GitHub's rate limit.
+`test/verdict.test.js`, `test/tamper.test.js` and `test/config.test.js` cover the rules and settings. `test/github.test.js` and `test/bitbucket.test.js` read real pull requests from GitHub and Bitbucket Cloud (no mocks); set `GITHUB_TOKEN` to avoid GitHub's rate limit.
 
 ## Privacy
 

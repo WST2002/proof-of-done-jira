@@ -87,3 +87,4 @@ permissions:
     fetch:
       backend:
         - address: api.github.com
+        - address: api.bitbucket.org
