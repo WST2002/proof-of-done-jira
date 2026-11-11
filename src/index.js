@@ -22,7 +22,21 @@ async function labelsOf(key) {
   return res.ok ? (await res.json()).fields?.labels ?? [] : [];
 }
 
+// The result is saved on the work item, so a workflow condition can hide Done while the last check failed.
+async function remember(key, v) {
+  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ passed: v.done, problems: (v.problems ?? []).length, checkedAt: new Date().toISOString() }),
+  }).catch(() => {});
+  return v;
+}
+
 async function check(key) {
+  return remember(key, await evaluate(key));
+}
+
+async function evaluate(key) {
   const { config, token, skipLabel } = await settings();
   const skipped = skipReason(await labelsOf(key), skipLabel);
   if (skipped) return { done: true, skipped: true, repo: "", prs: [], problems: [], message: skipped };

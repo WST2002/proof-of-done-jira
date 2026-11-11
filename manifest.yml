@@ -1,4 +1,9 @@
 modules:
+  jira:workflowCondition:
+    - key: proof-of-done-condition
+      name: Proof of Done (hide Done while the last check failed)
+      description: Hides the transition while the work item's last Proof of Done check failed. Re-check from the Proof of Done panel to bring it back.
+      expression: "issue.properties['proof-of-done'] == null || issue.properties['proof-of-done'].passed == true"
   jira:issuePanel:
     - key: proof-of-done-panel
       resource: panel
@@ -76,6 +81,7 @@ app:
 permissions:
   scopes:
     - read:jira-work
+    - write:jira-work
     - storage:app
   external:
     fetch:
