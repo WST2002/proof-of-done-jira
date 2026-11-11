@@ -1,0 +1,11 @@
+{
+  "name": "proof-of-done-bitbucket",
+  "version": "0.1.0",
+  "description": "A Bitbucket merge check that flags pull requests which make checks pass by weakening, skipping or deleting tests.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "@forge/api": "^8.5.0"
+  }
+}
