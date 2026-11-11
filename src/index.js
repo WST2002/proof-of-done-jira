@@ -50,7 +50,7 @@ async function evaluate(key) {
     const prs = repo.startsWith("bitbucket:")
       ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
       : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
-    return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai }) => ({ number, url, merged, checks, files: files.length, ai })) };
+    return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai, sha }) => ({ number, url, merged, checks, files: files.length, ai, sha })) };
   } catch (e) {
     return { done: false, repo, prs: [], problems: [], message: `Could not check GitHub, so Done is blocked for now: ${e.message}` };
   }
