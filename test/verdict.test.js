@@ -122,3 +122,9 @@ test("an AI-written PR without a new exact assertion is blocked", () => {
 test("an AI-written PR with a new exact assertion passes", () => {
   assert.equal(verdict([{ ...goodPr, ai: "Claude" }]).done, true);
 });
+
+test("a weakened assertion carries its before and after for the panel", () => {
+  const pr = { ...goodPr, diff: diff("src/price.js", ["return p"], ["return p * 0.9"]) + diff("test/price.test.js", ["expect(f(10)).toBe(10)"], ["expect(f(10)).toBeDefined()"]) };
+  const [ev] = verdict([pr]).problems.find((p) => p.kind === "tampering").evidence;
+  assert.deepEqual(ev, { file: "test/price.test.js", line: 1, kind: "weakened", says: "replaces an exact assertion with a weaker one", before: "expect(f(10)).toBe(10)", after: "expect(f(10)).toBeDefined()" });
+});

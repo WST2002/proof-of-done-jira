@@ -1,11 +1,51 @@
 // Work item panel: the same check the Done transition runs, shown before anyone tries to move the work item.
 import React, { useEffect, useState } from "react";
-import ForgeReconciler, { Box, Button, Inline, Link, Lozenge, SectionMessage, Spinner, Stack, Strong, Text } from "@forge/react";
+import ForgeReconciler, { Box, Button, Code, Inline, Link, Lozenge, SectionMessage, Spinner, Stack, Strong, Text, useProductContext } from "@forge/react";
 import { invoke } from "@forge/bridge";
 
 const CHECK_STATE = (c) => (c.conclusion === "success" ? "success" : c.status !== "completed" ? "inprogress" : c.conclusion === "skipped" || c.conclusion === "neutral" ? "default" : "removed");
+const at = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }) : "");
+
+// What the work item needs, in the words a person would use.
+function headline(result, key) {
+  if (result.skipped) return { appearance: "success", title: "No code needed", body: result.message };
+  if (result.done) return { appearance: "success", title: "Ready for Done", body: "Every linked pull request is merged, its checks passed and its tests were kept honest." };
+  if (result.problems?.some((p) => p.kind === "no-pr")) return { appearance: "information", title: "No pull request yet", body: `Put ${key} in a pull request title or branch name, for example "${key}: fix the cart total". Work with no code can carry the label no-code.` };
+  if (!result.repo) return { appearance: "information", title: "Not set up yet", body: result.message };
+  if (result.problems?.some((p) => p.kind === "tampering")) return { appearance: "error", title: "Blocked: the tests were changed to pass", body: "CI may be green, but these changes make the tests prove less than before." };
+  return { appearance: "warning", title: "Not done yet", body: null };
+}
+
+function Evidence({ items }) {
+  return (
+    <Stack space="space.100">
+      {items.map((e, i) => (
+        <Box key={i} padding="space.100" backgroundColor="color.background.danger.subtle">
+          <Stack space="space.050">
+            <Text>
+              <Strong>{`${e.file}${e.line ? `:${e.line}` : ""}`}</Strong> {e.says}
+            </Text>
+            {e.before ? (
+              <Text>
+                Before: <Code>{e.before}</Code>
+              </Text>
+            ) : null}
+            {e.after ? (
+              <Text>
+                {e.before ? "After: " : ""}
+                <Code>{e.after}</Code>
+              </Text>
+            ) : null}
+          </Stack>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
 
 function Panel() {
+  const context = useProductContext();
+  const key = context?.extension?.issue?.key ?? "this work item";
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(true);
 
@@ -20,19 +60,25 @@ function Panel() {
 
   if (busy && !result) return <Spinner label="Checking the linked pull requests" />;
 
+  const head = headline(result, key);
+  const tampering = result.problems?.find((p) => p.kind === "tampering");
+  const others = (result.problems ?? []).filter((p) => p.kind !== "tampering" && p.kind !== "no-pr");
+
   return (
     <Stack space="space.150">
-      <SectionMessage appearance={result.done ? "success" : "warning"} title={result.skipped ? "No code needed" : result.done ? "Ready for Done" : "Not done yet"}>
-        {result.done ? (
-          <Text>{result.skipped ? result.message : "Every linked pull request is merged, its checks passed and its tests were kept honest."}</Text>
-        ) : (
+      <SectionMessage appearance={head.appearance} title={head.title}>
+        {head.body ? <Text>{head.body}</Text> : null}
+        {others.length ? (
           <Stack space="space.050">
-            {(result.problems?.length ? result.problems.map((p) => p.text) : [result.message]).map((t, i) => (
-              <Text key={i}>• {t}</Text>
+            {others.map((p, i) => (
+              <Text key={i}>• {p.text}</Text>
             ))}
           </Stack>
-        )}
+        ) : null}
       </SectionMessage>
+
+      {tampering?.evidence?.length ? <Evidence items={tampering.evidence} /> : null}
+
       {result.warnings?.length ? (
         <SectionMessage appearance="information" title="Heads-up (not blocking)">
           <Stack space="space.050">
@@ -42,10 +88,11 @@ function Panel() {
           </Stack>
         </SectionMessage>
       ) : null}
+
       {result.prs?.map((pr) => (
         <Box key={pr.number} padding="space.100" backgroundColor="color.background.neutral.subtle">
           <Stack space="space.075">
-            <Inline space="space.100" alignBlock="center">
+            <Inline space="space.100" alignBlock="center" shouldWrap>
               <Link href={pr.url} openNewTab>
                 PR #{pr.number}
               </Link>
@@ -59,15 +106,16 @@ function Panel() {
           </Stack>
         </Box>
       ))}
-      <Inline space="space.100" alignBlock="center">
-        <Button onClick={run} isDisabled={busy}>
+
+      <Inline space="space.100" alignBlock="center" shouldWrap>
+        <Button appearance="primary" onClick={run} isDisabled={busy}>
           {busy ? "Checking…" : "Check again"}
         </Button>
-        {result.repo ? (
-          <Text>
-            Repository: <Strong>{result.repo}</Strong>
-          </Text>
-        ) : null}
+        <Text>
+          {result.checkedAt ? `Checked ${at(result.checkedAt)}` : ""}
+          {result.prs?.[0]?.sha ? ` at commit ${result.prs[0].sha.slice(0, 7)}` : ""}
+          {result.repo ? ` · ${result.repo}` : ""}
+        </Text>
       </Inline>
     </Stack>
   );
