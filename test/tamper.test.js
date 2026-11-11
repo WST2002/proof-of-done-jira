@@ -72,3 +72,31 @@ test("turning a test off is caught; a runtime skip with a reason is not", () => 
   assert.deepEqual(kinds(diff("test/a.test.js", ["describe('cart', () => {"], ["describe.only('cart', () => {"])), ["skipped"]);
   assert.deepEqual(kinds(diff("test/a.test.js", ["  const tool = find();"], ["  if (!tool) return t.skip('no clipboard tool on this machine');"])), []);
 });
+
+test("raising a test timeout is caught", () => {
+  assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(60000);"])), ["timeout"]);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["test('loads', async () => {", "}, 2000);"], ["test('loads', async () => {", "}, 30000);"])), ["timeout"]);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["  this.timeout(2000);"], ["  this.timeout(20000);"])), ["timeout"]);
+  assert.deepEqual(kinds(diff("jest.config.js", ["  testTimeout: 5000,"], ["  testTimeout: 120000,"])), ["timeout"]);
+});
+
+test("lowering a timeout is fine", () => {
+  assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(60000);"], ["jest.setTimeout(5000);"])), []);
+});
+
+test("adding retries to hide a flaky test is caught", () => {
+  assert.deepEqual(kinds(diff("test/a.test.js", ["const x = 1;"], ["jest.retryTimes(3);"])), ["retry"]);
+  assert.deepEqual(kinds(diff("test/test_cart.py", ["import pytest"], ["@pytest.mark.flaky(reruns=3)"])), ["retry"]);
+  assert.deepEqual(kinds(diff("playwright.config.ts", ["  retries: 0,"], ["  retries: 3,"])), ["retry"]);
+});
+
+test("swallowing an error in code is caught", () => {
+  assert.deepEqual(kinds(diff("src/cart.js", ["  return load();"], ["  try { return load(); } catch (e) { return []; }"])), ["swallowed"]);
+  assert.deepEqual(kinds(diff("src/cart.js", ["  await save(cart);"], ["  await save(cart).catch(() => {});"])), ["swallowed"]);
+  assert.deepEqual(kinds(diff("src/cart.py", ["    save(cart)"], ["    except Exception:", "        pass"])), ["swallowed"]);
+});
+
+test("handling an error properly is not a swallow", () => {
+  assert.deepEqual(kinds(diff("src/cart.js", ["  return load();"], ["  try { return load(); } catch (e) { log(e); throw e; }"])), []);
+  assert.deepEqual(kinds(diff("src/cart.js", ["  const a = 1;"], ["  // returns [] when the cart is empty"])), []);
+});

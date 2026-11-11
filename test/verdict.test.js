@@ -93,3 +93,32 @@ test("the block message tells people how to mark work that needs no code", () =>
   assert.match(verdict([]).message, /label "no-code"/);
   assert.match(verdict([], { skipLabel: "docs-only" }).message, /label "docs-only"/);
 });
+
+test("a swallowed error is a warning, not a block", () => {
+  const pr = { ...goodPr, diff: goodPr.diff + diff("src/save.js", ["  await save(cart);"], ["  await save(cart).catch(() => {});"]) };
+  const v = verdict([pr]);
+  assert.equal(v.done, true);
+  assert.deepEqual(v.problems, []);
+  assert.equal(v.warnings.length, 1);
+  assert.match(v.warnings[0].text, /src\/save\.js:1 drops an error without handling it/);
+  assert.match(v.message, /Heads-up/);
+});
+
+test("raised timeouts and new retries block Done", () => {
+  const pr = { ...goodPr, diff: goodPr.diff + diff("test/load.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(60000);", "jest.retryTimes(3);"]) };
+  const v = verdict([pr]);
+  assert.equal(v.done, false);
+  assert.match(v.problems[0].text, /raises a test timeout/);
+  assert.match(v.problems[0].text, /retries a failing test/);
+});
+
+test("an AI-written PR without a new exact assertion is blocked", () => {
+  const pr = { ...goodPr, ai: "Claude", diff: diff("src/price.js", ["return p"], ["return p * 0.9"]) + diff("test/price.test.js", ["// old"], ["// renamed comment"]) };
+  const v = verdict([pr]);
+  assert.equal(v.done, false);
+  assert.match(v.problems.find((p) => p.kind === "ai-no-assertion").text, /written with Claude and adds no new exact assertion/);
+});
+
+test("an AI-written PR with a new exact assertion passes", () => {
+  assert.equal(verdict([{ ...goodPr, ai: "Claude" }]).done, true);
+});

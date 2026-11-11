@@ -5,6 +5,7 @@ import resolverModule from "@forge/resolver";
 import { linkedPullRequests } from "./lib/github.js";
 import { linkedBitbucketPullRequests } from "./lib/bitbucket.js";
 import { verdict } from "./lib/verdict.js";
+import { receipt } from "./lib/receipt.js";
 import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL } from "./lib/config.js";
 
 const CONFIG = "config";
@@ -49,7 +50,7 @@ async function evaluate(key) {
     const prs = repo.startsWith("bitbucket:")
       ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
       : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
-    return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files }) => ({ number, url, merged, checks, files: files.length })) };
+    return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai }) => ({ number, url, merged, checks, files: files.length, ai })) };
   } catch (e) {
     return { done: false, repo, prs: [], problems: [], message: `Could not check GitHub, so Done is blocked for now: ${e.message}` };
   }
@@ -58,6 +59,21 @@ async function evaluate(key) {
 export async function validate({ issue }) {
   const v = await check(issue.key);
   return { result: v.done, errorMessage: v.message };
+}
+
+// When a work item moves to Done, leave the evidence behind "done" as a comment, so it stays with the work item.
+export async function onIssueUpdated(event) {
+  const moved = (event?.changelog?.items ?? []).find((i) => i.field === "status");
+  const key = event?.issue?.key;
+  const toDone = event.issue.fields?.status?.statusCategory?.key === "done" || /^done$/i.test(moved?.toString ?? "");
+  if (!key || !moved || !toDone) return;
+  const v = await check(key);
+  if (!v.done) return;
+  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ body: receipt(v) }),
+  });
 }
 
 export async function checkDone(payload) {
