@@ -10,7 +10,7 @@ const TEST_FILE = [
 // A whole test turned off. A skip inside a test with a reason (t.skip("no clipboard here")) is an environment guard, not tampering.
 const SKIP = /\b(?:it|test|describe|context|suite|specify)\.(?:skip|only|todo)\s*\(|\b(?:xit|xdescribe|xtest|fit|fdescribe)\s*\(|@pytest\.mark\.(?:skip|skipif|xfail)\b|@unittest\.skip|#\[ignore\]|@Disabled\b|@Ignore\b/;
 const ALWAYS_PASSES = /expect\(\s*(true|1)\s*\)\.(toBe|toEqual)\(\s*(true|1)\s*\)|\bassert\s+True\b|assert\.ok\(\s*true\s*\)|assertTrue\(\s*true\s*\)|\bassert\(\s*true\s*\)/;
-const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+\w[\w.]*\s*(is not None)?\s*$/;
+const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+[^=!<>]+?(\s+is\s+not\s+None)?\s*$|\bself\.assert(True|IsNotNone)\(|\bassertNotNull\(|\bassertTrue\(.*!=\s*null\s*\)/;
 const STRONG = /\.(toBe|toEqual|toStrictEqual|toMatch|toContain|toHaveLength|toThrow|toHaveBeenCalledWith)\(\s*\S|\bassert\w*\s*\(?.*(==|!=|Equal|In\b)|\bassert\.(equal|deepEqual|strictEqual|deepStrictEqual|match|throws)\(/;
 const TEST_CASE = /^\s*(it|test|describe|xit|fit|xdescribe|fdescribe)(\.\w+)*\s*\(|^\s*(async\s+)?def\s+test_|^\s*func\s+Test\w*\(|@Test\b/;
 const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|#\s*noqa\b|#\s*type:\s*ignore|\/\/\s*nolint\b|@SuppressWarnings\b|#\s*pragma:\s*no cover/;
@@ -68,8 +68,11 @@ const withoutStrings = (text) =>
 
 // What a weak assertion checks: expect(X).toBeDefined() -> X, assert.ok(X) / assert(X) -> X, Python assert X -> X.
 function subject(text) {
-  const m = /expect\(\s*(.+?)\s*\)\s*\.(?:not\.)?to/.exec(text) ?? /\bassert(?:\.ok)?\(\s*([^,]+?)\s*(?:,|\)\s*;?\s*$)/.exec(text) ?? /\bassert\s+([\w.]+)/.exec(text);
-  return m?.[1]?.trim();
+  const jest = /expect\(\s*(.+?)\s*\)\s*\.(?:not\.)?to/.exec(text);
+  if (jest) return jest[1].trim();
+  // assert.ok(x) / assertTrue(x) / assertNotNull(x) / Python assert x: the first name the assertion looks at.
+  const call = /\b(?:assert|self\.assert|assert)\w*(?:\.ok)?\(\s*(?:await\s+)?([\w.]+)/.exec(text) ?? /\bassert\s+(?:await\s+)?([\w.]+)/.exec(text);
+  return call?.[1];
 }
 
 // A weak assertion is a weakening only when it replaces an exact assertion about the same thing in this hunk.
@@ -83,14 +86,23 @@ const short = (text) => {
   return t.length > 80 ? `${t.slice(0, 77)}…` : t;
 };
 
+const testCases = (lines) => lines.filter((l) => TEST_CASE.test(l.text)).length;
+const movedTests = (gone, files) => {
+  const before = testCases(gone.hunks.flatMap((h) => h.removed));
+  const after = files.filter((f) => f.created && isTestFile(f.path)).reduce((n, f) => n + testCases(f.hunks.flatMap((h) => h.added)), 0);
+  return before > 0 && after >= before;
+};
+
 /** Test-weakening changes in a diff: [{ file, line, kind, text }]. `ignore(file)` leaves a file out. */
 export function findTampering(diff, ignore = () => false) {
   const findings = [];
-  for (const file of parseDiff(diff)) {
+  const files = parseDiff(diff);
+  for (const file of files) {
     if (ignore(file.path) || NON_CODE.test(file.path)) continue;
     const test = isTestFile(file.path);
     if (file.deleted) {
-      if (test) findings.push({ file: file.path, line: null, kind: "deleted-file", text: "" });
+      // A test file deleted while the same number of tests appears in a new test file is a move, not a deletion.
+      if (test && !movedTests(file, files)) findings.push({ file: file.path, line: null, kind: "deleted-file", text: "" });
       continue;
     }
     let removedCases = 0;

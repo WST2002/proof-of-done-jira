@@ -53,6 +53,19 @@ npm test
 
 `test/verdict.test.js`, `test/tamper.test.js` and `test/config.test.js` cover the rules and settings. `test/github.test.js` and `test/bitbucket.test.js` read real pull requests from GitHub and Bitbucket Cloud (no mocks); set `GITHUB_TOKEN` to avoid GitHub's rate limit.
 
+## How accurate is it?
+
+`benchmark/cases.js` holds 60 small pull-request diffs: 20 honest changes (renames, stronger assertions, moved test files, lower timeouts, runtime skips with a reason) and 40 shortcuts (20 weakened assertions across Jest, node:assert, pytest, unittest and JUnit; 10 skipped or deleted tests; 10 config or suppression tricks). `npm run benchmark` prints the result, and CI runs it on every pull request.
+
+| | First run | Now |
+|---|---|---|
+| Shortcuts caught | 33 of 40 | 40 of 40 |
+| Honest changes wrongly flagged | 1 of 20 | 0 of 20 |
+
+The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over 68 honest merged pull requests from two other real repositories: none was blocked.
+
+Every block names the file and line, so a person can always see why.
+
 ## Privacy
 
 - Proof of Done stores only its settings: the GitHub repository for each Jira project, and an optional GitHub token, which is kept encrypted in Forge storage.
