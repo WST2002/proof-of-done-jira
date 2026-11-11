@@ -60,9 +60,10 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
       number: pr.id,
       url: pr.links?.html?.href ?? `https://bitbucket.org/${repo}/pull-requests/${pr.id}`,
       merged: pr.state === "MERGED",
+      sha: pr.source?.commit?.hash,
       files: files.map((f) => f.new?.path ?? f.old?.path).filter(Boolean),
       diff,
-      checks: statuses.map((s) => ({ name: s.name || s.key, ...(STATUS[s.state] ?? { status: "completed", conclusion: "neutral" }) })),
+      checks: statuses.map((s) => ({ name: s.name || s.key, url: s.url, ...(STATUS[s.state] ?? { status: "completed", conclusion: "neutral" }) })),
       ai: detectAI(commits.map((c) => ({ message: c.message, author: c.author?.user?.nickname ?? c.author?.raw }))),
     });
   }

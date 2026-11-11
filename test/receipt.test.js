@@ -7,7 +7,7 @@ const text = (doc) => JSON.stringify(doc);
 test("a receipt lists each merged PR, its checks and the honesty result", () => {
   const doc = receipt({
     done: true, warnings: [], repo: "acme/shop",
-    prs: [{ number: 12, url: "https://github.com/acme/shop/pull/12", merged: true, files: 4, ai: null, checks: [{ name: "test", status: "completed", conclusion: "success" }] }],
+    prs: [{ number: 12, url: "https://github.com/acme/shop/pull/12", merged: true, files: 4, ai: null, sha: "1e281e9f0c2b7d4a", checks: [{ name: "test", status: "completed", conclusion: "success", url: "https://github.com/acme/shop/actions/runs/42/job/7" }] }],
   }, new Date("2026-11-11T17:00:00Z"));
   assert.equal(doc.type, "doc");
   const t = text(doc);
@@ -17,6 +17,9 @@ test("a receipt lists each merged PR, its checks and the honesty result", () => 
   assert.match(t, /test: passed/);
   assert.match(t, /No test was weakened, skipped or deleted/);
   assert.match(t, /11 Nov 2026/);
+  assert.match(t, /commit 1e281e9/);
+  assert.match(t, /actions\/runs\/42/);
+  assert.match(t, /rules v\d/);
 });
 
 test("a no-code receipt says why no PR was needed", () => {

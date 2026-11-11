@@ -60,10 +60,11 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
     prs.push({
       number: pr.number,
       url: pr.html_url,
+      sha: pr.head?.sha,
       merged: Boolean(pr.merged_at),
       files: files.map((f) => f.filename),
       diff: files.map((f) => `diff --git a/${f.filename} b/${f.filename}\n${f.status === "removed" ? "deleted file mode 100644\n" : ""}--- a/${f.filename}\n+++ b/${f.filename}\n${f.patch ?? ""}\n`).join(""),
-      checks: checks.map((c) => ({ name: c.name, status: c.status, conclusion: c.conclusion })),
+      checks: checks.map((c) => ({ name: c.name, status: c.status, conclusion: c.conclusion, url: c.html_url ?? c.details_url })),
       ai: detectAI([{ message: "", author: pr.user?.login }, ...commits.map((c) => ({ message: c.commit?.message, author: c.author?.login }))]),
     });
   }

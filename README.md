@@ -18,7 +18,7 @@ Work that needs no code (design, research, a meeting) gets the label `no-code` a
 
 Add the **Proof of Done** condition to the same transition and Done is hidden while the last check failed; re-checking from the work item brings it back.
 
-When the work item reaches Done, Proof of Done leaves a **receipt** comment: each merged pull request, its CI checks and the test-honesty result, so the evidence stays with the work item.
+When the work item reaches Done, Proof of Done leaves a **receipt** comment: each merged pull request, its CI checks and the test-honesty result, so the evidence stays with the work item. The receipt pins the exact commit, links each CI run and names the rules version. The validator never trusts an earlier result: it checks the pull requests again at the moment someone moves the work item.
 
 Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
 
