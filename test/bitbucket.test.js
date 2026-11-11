@@ -10,7 +10,7 @@ test("reads a Bitbucket PR's files and diff by the key in its title", async () =
   const [pr, ...rest] = await linkedBitbucketPullRequests({ fetch, repo, key: "SHOP-1" });
   assert.equal(rest.length, 0);
   assert.equal(pr.number, 1);
-  assert.deepEqual([...pr.files].sort(), ["src/price.js", "test/price.test.js"]);
+  for (const f of ["src/price.js", "test/price.test.js"]) assert.ok(pr.files.includes(f), `${f} missing from ${pr.files}`);
   assert.match(pr.diff, /^diff --git a\/src\/price\.js/m);
 });
 

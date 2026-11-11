@@ -19,6 +19,12 @@ Every work item also gets a **Proof of Done** box that shows the same check befo
 
 The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
 
+## Catch it before merge (Bitbucket)
+
+`bitbucket-merge-check/` is a second, small Forge app for Bitbucket Cloud. It adds a **custom merge check** that runs the same test-tampering rules on every push to a pull request, so the problem shows up on the pull request itself, before anyone merges. On Bitbucket Premium the check can be made required to block the merge.
+
+To use it: install it on your workspace, enable **Workspace settings → Custom merge checks**, then add **Proof of Done** under **Repository settings → Custom merge checks**.
+
 ## Setup
 
 **Install from the link** (no code needed): open the installation link, choose your Jira site, then in Jira go to **Apps → Manage apps → Proof of Done** and enter the repository for each project: `owner/name` for GitHub, `bitbucket:workspace/name` for Bitbucket Cloud (and a read-only token for private repositories). Then add the **Proof of Done** validator to the transition into Done.
