@@ -41,3 +41,11 @@ test("the skip label must be a single Jira label", async () => {
   assert.equal(checkSkipLabel(""), null);
   assert.match(checkSkipLabel("no code"), /spaces/);
 });
+
+test("Bitbucket repositories are read as bitbucket:workspace/repo", () => {
+  const { config, problems } = parseRepos("acme/shop\nSHOP=bitbucket:wst2002rk/shop-demo\nWEB=https://bitbucket.org/acme/website/");
+  assert.deepEqual(problems, []);
+  assert.equal(config.projects.SHOP, "bitbucket:wst2002rk/shop-demo");
+  assert.equal(config.projects.WEB, "bitbucket:acme/website");
+  assert.equal(formatRepos(config), "acme/shop\nSHOP=bitbucket:wst2002rk/shop-demo\nWEB=bitbucket:acme/website");
+});
