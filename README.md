@@ -7,13 +7,18 @@ Proof of Done is a Forge app. When someone moves a work item to Done, it looks u
 - every linked pull request is **merged**,
 - its CI checks **ran and passed** (skipped or still-running checks don't count),
 - code changes come **with test changes**,
-- no test was **weakened, skipped or deleted** to get green: for example `toBe(9)` turned into `toBeDefined()`, a new `it.skip`, or a lowered coverage threshold.
+- no test was **weakened, skipped or deleted** to get green: for example `toBe(9)` turned into `toBeDefined()`, a new `it.skip`, a raised test timeout, retries added to a flaky test, or a lowered coverage threshold.
+- if the pull request was **written with an AI agent** (a `Co-Authored-By: Claude/Copilot/...` trailer or a bot author), it must add at least one new exact assertion.
+
+An error caught and dropped without handling is shown as a heads-up, not a block, because it is sometimes deliberate.
 
 If something is missing, Jira shows exactly what, with file and line, so the fix is obvious.
 
 Work that needs no code (design, research, a meeting) gets the label `no-code` and moves to Done without a pull request. Admins can change that label in the settings page.
 
 Add the **Proof of Done** condition to the same transition and Done is hidden while the last check failed; re-checking from the work item brings it back.
+
+When the work item reaches Done, Proof of Done leaves a **receipt** comment: each merged pull request, its CI checks and the test-honesty result, so the evidence stays with the work item.
 
 Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
 

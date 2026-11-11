@@ -1,6 +1,7 @@
 // Reads the Bitbucket Cloud pull requests that mention a Jira key: merge state, changed files, diff, build statuses.
 // Returns the same shape as github.js, so verdict.js judges both the same way.
 import { mentions } from "./github.js";
+import { detectAI } from "./ai.js";
 
 const API = "https://api.bitbucket.org/2.0";
 const MAX_PRS = 5;
@@ -54,6 +55,7 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
     const files = await all(get, `${base}/${pr.id}/diffstat?pagelen=100`);
     const diff = await get(`${base}/${pr.id}/diff`, true);
     const statuses = await all(get, `${base}/${pr.id}/statuses?pagelen=50`, 1);
+    const commits = await all(get, `${base}/${pr.id}/commits?pagelen=50`, 1);
     prs.push({
       number: pr.id,
       url: pr.links?.html?.href ?? `https://bitbucket.org/${repo}/pull-requests/${pr.id}`,
@@ -61,6 +63,7 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
       files: files.map((f) => f.new?.path ?? f.old?.path).filter(Boolean),
       diff,
       checks: statuses.map((s) => ({ name: s.name || s.key, ...(STATUS[s.state] ?? { status: "completed", conclusion: "neutral" }) })),
+      ai: detectAI(commits.map((c) => ({ message: c.message, author: c.author?.user?.nickname ?? c.author?.raw }))),
     });
   }
   return prs;

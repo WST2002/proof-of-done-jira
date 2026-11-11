@@ -4,6 +4,11 @@ modules:
       name: Proof of Done (hide Done while the last check failed)
       description: Hides the transition while the work item's last Proof of Done check failed. Re-check from the Proof of Done panel to bring it back.
       expression: "issue.properties['proof-of-done'] == null || issue.properties['proof-of-done'].passed == true"
+  trigger:
+    - key: proof-of-done-receipt
+      function: receipt
+      events:
+        - avi:jira:updated:issue
   jira:issuePanel:
     - key: proof-of-done-panel
       resource: panel
@@ -69,6 +74,8 @@ modules:
       handler: index.checkDone
     - key: resolver
       handler: index.handler
+    - key: receipt
+      handler: index.onIssueUpdated
 resources:
   - key: panel
     path: src/frontend/panel.jsx

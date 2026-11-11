@@ -16,6 +16,20 @@ const TEST_CASE = /^\s*(it|test|describe|xit|fit|xdescribe|fdescribe)(\.\w+)*\s*
 const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|#\s*noqa\b|#\s*type:\s*ignore|\/\/\s*nolint\b|@SuppressWarnings\b|#\s*pragma:\s*no cover/;
 const THRESHOLD = /\b(branches|functions|lines|statements|fail_under|fail-under|cov-fail-under)["']?\s*[:=]?\s*(\d+(?:\.\d+)?)/;
 const NON_CODE = /\.(md|mdx|txt|rst|lock)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/;
+// Test runner config files: timeouts and retries set there hide slow or flaky tests just like in a test file.
+const TEST_CONFIG = /(^|\/)(jest|vitest|playwright|cypress|karma|mocha)\.config\.[cm]?[jt]s$|(^|\/)\.mocharc\.|(^|\/)(pytest\.ini|setup\.cfg|tox\.ini|pyproject\.toml)$/;
+// A timeout value, so a raised one can be compared with the one it replaced.
+const TIMEOUTS = [
+  /\b(?:jest\.setTimeout|this\.timeout|test\.setTimeout|setDefaultTimeout)\(\s*(\d+)/,
+  /\b(?:testTimeout|timeout|defaultTimeout)["']?\s*[:=]\s*(\d+)/,
+  /@pytest\.mark\.timeout\(\s*(\d+)/,
+  /^\s*\}\s*,\s*(\d{3,})\s*\)\s*;?\s*$/,
+];
+// Retries make a flaky test pass on a later try.
+const RETRY = /\bjest\.retryTimes\(\s*[1-9]|\bthis\.retries\(\s*[1-9]|@pytest\.mark\.flaky\b|--reruns\b|\bretries["']?\s*[:=]\s*[1-9]/;
+// An error caught and dropped: an empty catch, or one that only returns an empty value.
+const SWALLOW = /\bcatch\s*(\([^)]*\))?\s*\{\s*(return\s*(\[\s*\]|\{\s*\}|null|undefined|false|""|0)?\s*;?)?\s*\}|\.catch\(\s*(\(\s*\w*\s*\)|\w+)\s*=>\s*(\{\s*\}|null|undefined|\[\s*\])\s*\)|^\s*except\b[^:]*:\s*pass\s*$/;
+const PY_EXCEPT = /^\s*except\b[^:]*:\s*$/;
 
 export const isTestFile = (file) => TEST_FILE.some((re) => re.test(file));
 
@@ -89,6 +103,14 @@ export function findTampering(diff, ignore = () => false) {
         else if (test && SKIP.test(code)) add("skipped");
         else if (test && ALWAYS_PASSES.test(code)) add("always-passes");
         else if (test && WEAK.test(code) && replacesStrong(text, removed)) add("weakened");
+        if (test || TEST_CONFIG.test(file.path)) {
+          if (RETRY.test(code)) add("retry");
+          for (const re of TIMEOUTS) {
+            const now = re.exec(code)?.[1];
+            const was = removed.map((r) => re.exec(withoutStrings(r.text))?.[1]).find(Boolean);
+            if (now && was && Number(now) > Number(was)) { add("timeout"); break; }
+          }
+        } else if (SWALLOW.test(code) || (PY_EXCEPT.test(code) && /^\s*pass\s*$/.test(added[added.findIndex((a) => a.line === line) + 1]?.text ?? ""))) add("swallowed");
         const before = removed.map((r) => THRESHOLD.exec(r.text)).find((m) => m && m[1] === THRESHOLD.exec(text)?.[1]);
         const after = THRESHOLD.exec(text);
         if (before && after && Number(after[2]) < Number(before[2])) add("threshold");

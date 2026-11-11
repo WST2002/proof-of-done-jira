@@ -33,6 +33,15 @@ function Panel() {
           </Stack>
         )}
       </SectionMessage>
+      {result.warnings?.length ? (
+        <SectionMessage appearance="information" title="Heads-up (not blocking)">
+          <Stack space="space.050">
+            {result.warnings.map((w, i) => (
+              <Text key={i}>• {w.text}</Text>
+            ))}
+          </Stack>
+        </SectionMessage>
+      ) : null}
       {result.prs?.map((pr) => (
         <Box key={pr.number} padding="space.100" backgroundColor="color.background.neutral.subtle">
           <Stack space="space.075">
@@ -42,6 +51,7 @@ function Panel() {
               </Link>
               <Lozenge appearance={pr.merged ? "success" : "moved"}>{pr.merged ? "merged" : "not merged"}</Lozenge>
               <Text>{pr.files === 1 ? "1 file" : `${pr.files} files`}</Text>
+              {pr.ai ? <Lozenge appearance="new">{`written with ${pr.ai}`}</Lozenge> : null}
             </Inline>
             <Inline space="space.075" shouldWrap>
               {pr.checks.length ? pr.checks.map((c, i) => <Lozenge key={i} appearance={CHECK_STATE(c)}>{`${c.name}: ${c.conclusion ?? c.status}`}</Lozenge>) : <Lozenge appearance="removed">no CI checks</Lozenge>}

@@ -1,4 +1,5 @@
 // Reads the pull requests that mention a Jira key from GitHub: merged state, changed files, diff, check runs.
+import { detectAI } from "./ai.js";
 // `fetch` is passed in: Forge's fetch inside the app, the global fetch in tests and the CLI.
 const API = "https://api.github.com";
 const MAX_PRS = 5;
@@ -55,6 +56,7 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
     if (!mentions(pr.title, key) && !mentions(pr.head?.ref, key)) continue;
     const files = await pages(get, `/repos/${repo}/pulls/${pr.number}/files`);
     const checks = await pages(get, `/repos/${repo}/commits/${pr.head.sha}/check-runs`, 1);
+    const commits = await pages(get, `/repos/${repo}/pulls/${pr.number}/commits`, 1);
     prs.push({
       number: pr.number,
       url: pr.html_url,
@@ -62,6 +64,7 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
       files: files.map((f) => f.filename),
       diff: files.map((f) => `diff --git a/${f.filename} b/${f.filename}\n${f.status === "removed" ? "deleted file mode 100644\n" : ""}--- a/${f.filename}\n+++ b/${f.filename}\n${f.patch ?? ""}\n`).join(""),
       checks: checks.map((c) => ({ name: c.name, status: c.status, conclusion: c.conclusion })),
+      ai: detectAI([{ message: "", author: pr.user?.login }, ...commits.map((c) => ({ message: c.commit?.message, author: c.author?.login }))]),
     });
   }
   return prs;
