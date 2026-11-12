@@ -113,3 +113,9 @@ export async function githubCommitHistory({ fetch, token, repo, number }) {
   }
   return out;
 }
+
+/** Whether pull request `number` mentions `key` in its title or branch, so it belongs to that work item. */
+export async function pullMentions({ fetch, token, repo, number, key }) {
+  const pr = await client(fetch, token)(`/repos/${repo}/pulls/${Number(number)}`);
+  return mentions(pr.title, key) || mentions(pr.head?.ref, key);
+}

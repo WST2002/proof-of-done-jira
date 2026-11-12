@@ -2,8 +2,8 @@
 import api, { route } from "@forge/api";
 import { kvs } from "@forge/kvs";
 import resolverModule from "@forge/resolver";
-import { linkedPullRequests, githubCommitHistory } from "./lib/github.js";
-import { linkedBitbucketPullRequests, bitbucketCommitHistory } from "./lib/bitbucket.js";
+import { linkedPullRequests, githubCommitHistory, pullMentions } from "./lib/github.js";
+import { linkedBitbucketPullRequests, bitbucketCommitHistory, bitbucketPullMentions } from "./lib/bitbucket.js";
 import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
@@ -155,8 +155,14 @@ resolver.define("check", async ({ context }) => check(context.extension.issue.ke
 // Commit by commit: what each push did to the tests, and where CI turned green. Loaded on request (more API calls).
 resolver.define("timeline", async ({ payload, context }) => {
   const { config, token, bitbucketToken } = await settings();
-  const repo = repoFor(config, context.extension.issue.key);
+  const key = context.extension.issue.key;
+  const repo = repoFor(config, key);
   try {
+    // Only a pull request that belongs to this work item: never someone else's PR by number.
+    const belongs = repo.startsWith("bitbucket:")
+      ? await bitbucketPullMentions({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), number: payload.number, key })
+      : await pullMentions({ fetch: api.fetch, token, repo, number: payload.number, key });
+    if (!belongs) return { ok: false, message: `Pull request #${payload.number} does not mention ${key}.` };
     const commits = repo.startsWith("bitbucket:")
       ? await bitbucketCommitHistory({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), number: payload.number })
       : await githubCommitHistory({ fetch: api.fetch, token, repo, number: payload.number });

@@ -55,6 +55,7 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
   const prs = [];
   for (const pr of linked) {
     const files = await all(get, `${base}/${pr.id}/diffstat?pagelen=100`);
+    if (files.length >= 300) throw new Error(`PR #${pr.id} changes 300 or more files, more than Proof of Done can read in full. Split it into smaller pull requests.`);
     const diff = await get(`${base}/${pr.id}/diff`, true);
     const statuses = await all(get, `${base}/${pr.id}/statuses?pagelen=50`);
     const commits = await all(get, `${base}/${pr.id}/commits?pagelen=50`, 1);
@@ -91,4 +92,10 @@ export async function bitbucketCommitHistory({ fetch, token, repo, number }) {
     out.push({ sha: c.hash, message: c.message, date: c.date, diff, ci: BB_CI(statuses) });
   }
   return out;
+}
+
+/** Whether Bitbucket pull request `number` mentions `key` in its title or source branch. */
+export async function bitbucketPullMentions({ fetch, token, repo, number, key }) {
+  const pr = await client(fetch, token)(`/repositories/${repo}/pullrequests/${Number(number)}`);
+  return mentions(pr.title, key) || mentions(pr.source?.branch?.name, key);
 }

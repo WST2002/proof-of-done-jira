@@ -1,7 +1,7 @@
 // Real GitHub, no mocks: a merged PR in a public repo that mentions "0.4.2" in its title.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { linkedPullRequests } from "../src/lib/github.js";
+import { linkedPullRequests, pullMentions } from "../src/lib/github.js";
 import { verdict } from "../src/lib/verdict.js";
 
 test("finds the PR that mentions the key and reads its files, diff and checks", async () => {
@@ -52,4 +52,10 @@ test("reads a PR's commits with their own diffs and CI results for the timeline"
 
 test("more linked pull requests than it can read blocks with a clear reason instead of checking only some", async () => {
   await assert.rejects(linkedPullRequests({ fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-jira", key: "POD" }), /pull requests mention POD; Proof of Done reads up to 10/);
+});
+
+test("the timeline is only read for a pull request that belongs to the work item", async () => {
+  const opts = { fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-jira", number: 26 };
+  assert.equal(await pullMentions({ ...opts, key: "POD-32" }), true);
+  assert.equal(await pullMentions({ ...opts, key: "POD-6" }), false);
 });
