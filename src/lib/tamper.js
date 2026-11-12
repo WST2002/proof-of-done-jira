@@ -55,11 +55,14 @@ export function parseDiff(diff) {
     else if (raw.startsWith("+++ ") && raw !== "+++ /dev/null") file.path = raw.slice(4).replace(/^b\//, "");
     else if (raw.startsWith("@@")) {
       line = Number(/\+(\d+)/.exec(raw)?.[1] ?? 0);
-      hunk = { added: [], removed: [] };
+      hunk = { added: [], removed: [], context: [] };
       file.hunks.push(hunk);
     } else if (hunk && raw.startsWith("+") && !raw.startsWith("+++")) hunk.added.push({ line: line++, text: raw.slice(1) });
     else if (hunk && raw.startsWith("-") && !raw.startsWith("---")) hunk.removed.push({ text: raw.slice(1) });
-    else if (hunk && raw.startsWith(" ")) line++;
+    else if (hunk && raw.startsWith(" ")) {
+      hunk.context.push({ text: raw.slice(1) });
+      line++;
+    }
   }
   return files;
 }
@@ -100,22 +103,31 @@ const short = (text) => {
 const testCases = (lines) => lines.filter((l) => TEST_CASE.test(l.text)).length;
 // The name a test is declared with: test("adds", …) -> adds, def test_adds -> adds, func TestAdds -> Adds.
 const testName = (text) => /\(\s*(["'`])(.*?)\1/.exec(text)?.[2] ?? /def\s+test_(\w+)|func\s+Test(\w+)/.exec(text)?.slice(1).find(Boolean);
+// The tests some lines declare, by name. JUnit names the method on the line after @Test.
+const testNames = (lines) =>
+  lines.flatMap((l, i) => {
+    if (!TEST_CASE.test(l.text)) return [];
+    if (/@Test\b/.test(l.text)) return [/\b(\w+)\s*\(/.exec(lines[i + 1]?.text ?? "")?.[1]];
+    return [testName(l.text)];
+  });
 // A deleted test file is a move when every test it declared appears again, by name, in a new test file.
 const movedTests = (gone, files) => {
-  const before = gone.hunks.flatMap((h) => h.removed).filter((l) => TEST_CASE.test(l.text)).map((l) => testName(l.text));
-  const after = new Set(files.filter((f) => f.created && isTestFile(f.path)).flatMap((f) => f.hunks.flatMap((h) => h.added)).filter((l) => TEST_CASE.test(l.text)).map((l) => testName(l.text)));
+  const before = testNames(gone.hunks.flatMap((h) => h.removed));
+  const after = new Set(files.filter((f) => f.created && isTestFile(f.path)).flatMap((f) => testNames(f.hunks.flatMap((h) => h.added))));
   return before.length > 0 && before.every((name) => name !== undefined && after.has(name));
 };
 
 /** Test-weakening changes in a diff: [{ file, line, kind, text }]. `ignore(file)` leaves a file out. */
 export function findTampering(diff, ignore = () => false) {
   const findings = [];
+  const emptied = [];
+  let addedChecksInPr = 0;
   const files = parseDiff(diff);
   for (const file of files) {
     if (ignore(file.path) || NON_CODE.test(file.path)) continue;
     const test = isTestFile(file.path);
     if (file.deleted) {
-      // A test file deleted while the same number of tests appears in a new test file is a move, not a deletion.
+      // A test file deleted while its tests appear again, by name, in a new test file is a move, not a deletion.
       if (test && !movedTests(file, files)) findings.push({ file: file.path, line: null, kind: "deleted-file", text: "" });
       continue;
     }
@@ -123,7 +135,7 @@ export function findTampering(diff, ignore = () => false) {
     let addedCases = 0;
     let removedExact = 0;
     let addedChecks = 0;
-    for (const { added, removed } of file.hunks) {
+    for (const { added, removed, context } of file.hunks) {
       for (const { line, text } of added) {
         const add = (kind, before) => findings.push({ file: file.path, line, kind, text: short(text), ...(before ? { before: short(before) } : {}) });
         const code = withoutStrings(text);
@@ -131,7 +143,7 @@ export function findTampering(diff, ignore = () => false) {
         else if (test && SKIP.test(code)) add("skipped", removed.find((r) => TEST_CASE.test(r.text))?.text);
         else if (test && ALWAYS_PASSES.test(code)) add("always-passes");
         else if (test && WEAK.test(code) && replacedStrong(text, removed, added)) add("weakened", replacedStrong(text, removed, added).text);
-        else if (test && SKIP_CALL.test(code) && added.some((a) => CI_ENV.test(a.text))) add("skipped");
+        else if (test && SKIP_CALL.test(code) && [...added, ...context].some((a) => CI_ENV.test(a.text))) add("skipped");
         if (test || TEST_CONFIG.test(file.path)) {
           if (RETRY.test(code)) add("retry");
           for (const re of TIMEOUTS) {
@@ -153,7 +165,10 @@ export function findTampering(diff, ignore = () => false) {
     }
     if (removedCases > addedCases) findings.push({ file: file.path, line: null, kind: "removed-tests", text: String(removedCases - addedCases) });
     // Exact checks taken out and nothing put back: the tests still run but no longer check anything.
-    else if (removedExact > 0 && addedChecks === 0) findings.push({ file: file.path, line: null, kind: "removed-assertions", text: String(removedExact) });
+    else if (removedExact > 0 && addedChecks === 0) emptied.push({ file: file.path, line: null, kind: "removed-assertions", text: String(removedExact) });
+    addedChecksInPr += addedChecks;
   }
+  // Checks moved to another test file in the same pull request are a refactor, not a loss.
+  for (const e of emptied) if (addedChecksInPr < Number(e.text)) findings.push(e);
   return findings;
 }

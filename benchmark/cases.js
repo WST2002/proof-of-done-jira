@@ -1,4 +1,4 @@
-// Benchmark: 25 honest changes that must pass and 45 test-tampering changes that must be caught.
+// Benchmark: 27 honest changes that must pass and 46 test-tampering changes that must be caught.
 // Each case is a small unified diff, like one pull request.
 
 const file = (path, removed, added) =>
@@ -31,6 +31,8 @@ const honest = [
   ["test.concurrent added for speed", file("test/api.test.js", ["test('loads', async () => {"], ["test.concurrent('loads', async () => {"])],
   ["two exact checks merged into one", file("test/user.test.js", ["  expect(user.id).toBe(1);", "  expect(user.name).toBe('Ana');"], ["  expect(user).toEqual({ id: 1, name: 'Ana' });"])],
   ["exact check moved into a helper", file("test/calc.test.js", ["  expect(calculate(x)).toBe(42);"], ["  expectAnswer(calculate(x));", "const expectAnswer = (v) => expect(v).toBe(42);"])],
+  ["java: move a test class to a new file", deleted("src/test/java/old/PriceTest.java", ["    @Test", "    void discountsTenPercent() {", "        assertEquals(45, price.discounted(50, 10));", "    }"]) + created("src/test/java/PriceTest.java", ["    @Test", "    void discountsTenPercent() {", "        assertEquals(45, price.discounted(50, 10));", "    }"])],
+  ["exact check moved to another test file", file("test/cart.test.js", ["  expect(total(cart)).toBe(90);"], []) + file("test/total.test.js", [], ["  expect(total(cart)).toBe(90);"])],
   ["runtime skip with a reason (node:test)", file("test/clip.test.mjs", ["  const tool = find();"], ["  if (!tool) return t.skip('no clipboard tool on this machine');"])],
 ];
 
@@ -72,6 +74,7 @@ const skippedOrDeleted = [
   ["test body emptied, name kept", file("test/cart.test.js", ["test('calculates the cart total', () => {", "  expect(total(cart)).toBe(90);", "});"], ["test('calculates the cart total', () => {", "});"])],
   ["go: skipped only on CI", file("cart/cart_test.go", ["	got := Total(cart)"], ["	if os.Getenv(\"CI\") != \"\" {", "		t.Skip(\"temporarily disabled in CI\")", "	}", "	got := Total(cart)"])],
   ["deleted test replaced by an empty one", deleted("test/payment.test.js", ["test('rejects an expired card', () => {", "  expect(() => charge(expiredCard)).toThrow('expired');", "});"]) + created("test/smoke.test.js", ["test('smoke test', () => {});"])],
+  ["skip added inside an existing CI check", 'diff --git a/tests/test_api.py b/tests/test_api.py\n--- a/tests/test_api.py\n+++ b/tests/test_api.py\n@@ -1,3 +1,4 @@\n def test_fetch():\n     if os.environ.get("CI"):\n+        pytest.skip("flaky on CI")\n     assert fetch() == 200\n'],
 ];
 
 const config = [
