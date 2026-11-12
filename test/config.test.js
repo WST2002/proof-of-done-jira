@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseRepos, formatRepos, repoFor, issueKeyOf, hostOf } from "../src/lib/config.js";
+import { parseRepos, formatRepos, repoFor, issueKeyOf, hostOf, adminOnly } from "../src/lib/config.js";
 
 test("a default repo and per-project repos are read from the admin's text", () => {
   const { config, problems } = parseRepos("acme/shop\nPAY = acme/payments\nweb=https://github.com/acme/website.git\n# a comment\n");
@@ -59,4 +59,12 @@ test("an MCP or Rovo caller's key is trimmed and upper-cased", () => {
 test("messages name the service the repository lives on", () => {
   assert.equal(hostOf("bitbucket:wst2002rk/shop-demo"), "Bitbucket");
   assert.equal(hostOf("WST2002/proof-of-done-jira"), "GitHub");
+});
+
+test("settings can only be changed from the admin page", () => {
+  assert.equal(adminOnly({ moduleKey: "proof-of-done-admin" }), null);
+  assert.equal(adminOnly({ extension: { type: "jira:adminPage" } }), null);
+  assert.match(adminOnly({ moduleKey: "proof-of-done-panel", extension: { type: "jira:issuePanel" } }), /settings page/);
+  assert.match(adminOnly({ moduleKey: "proof-of-done-panel" }), /only from the Proof of Done settings page/);
+  assert.match(adminOnly({}), /only from the Proof of Done settings page/);
 });

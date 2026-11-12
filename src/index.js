@@ -8,7 +8,7 @@ import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt } from "./lib/receipt.js";
-import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf } from "./lib/config.js";
+import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
@@ -130,6 +130,12 @@ export async function getTestTimeline(payload) {
 const Resolver = resolverModule.default ?? resolverModule;
 const resolver = new Resolver();
 
+// Settings and workflow changes: refused unless the call comes from the admin page.
+const admin = (fn) => async (req) => {
+  const refused = adminOnly(req.context);
+  return refused ? { ok: false, message: refused } : fn(req);
+};
+
 resolver.define("check", async ({ context }) => check(context.extension.issue.key));
 
 // Commit by commit: what each push did to the tests, and where CI turned green. Loaded on request (more API calls).
@@ -146,12 +152,12 @@ resolver.define("timeline", async ({ payload, context }) => {
   }
 });
 
-resolver.define("getSettings", async () => {
+resolver.define("getSettings", admin(async () => {
   const { config, skipLabel } = await settings();
   return { repos: formatRepos(config), skipLabel, hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
-});
+}));
 
-resolver.define("saveSettings", async ({ payload }) => {
+resolver.define("saveSettings", admin(async ({ payload }) => {
   const { config, problems } = parseRepos(payload.repos);
   const labelProblem = checkSkipLabel(payload.skipLabel);
   if (labelProblem) problems.push(labelProblem);
@@ -162,7 +168,7 @@ resolver.define("saveSettings", async ({ payload }) => {
   if (payload.clearBitbucketToken) await kvs.deleteSecret(BB_TOKEN);
   else if (payload.bitbucketToken?.trim()) await kvs.setSecret(BB_TOKEN, payload.bitbucketToken.trim());
   return { ok: true, problems: [], hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
-});
+}));
 
 // --- guided setup: preview, then apply, the validator and condition on a project's transitions into Done ---------
 const jira = async (path, init) => {
@@ -190,21 +196,21 @@ async function projectPlans(projectKey) {
   return { project: project.name, teamManaged: false, plans };
 }
 
-resolver.define("projects", async () => {
+resolver.define("projects", admin(async () => {
   const res = await jira(route`/rest/api/3/project/search?maxResults=50`);
   return (res.values ?? []).map((p) => ({ key: p.key, name: p.name, teamManaged: p.style === "next-gen" }));
-});
+}));
 
-resolver.define("previewSetup", async ({ payload }) => {
+resolver.define("previewSetup", admin(async ({ payload }) => {
   try {
     const { project, teamManaged, plans } = await projectPlans(payload.projectKey);
     return { ok: true, project, teamManaged, plans: plans.map(({ workflow, changes, alreadyDone }) => ({ workflow, changes, alreadyDone })) };
   } catch (e) {
     return { ok: false, message: e.message };
   }
-});
+}));
 
-resolver.define("applySetup", async ({ payload }) => {
+resolver.define("applySetup", admin(async ({ payload }) => {
   try {
     const { plans } = await projectPlans(payload.projectKey);
     for (const plan of plans.filter((p) => !p.alreadyDone)) await jira(route`/rest/api/3/workflows/update`, { method: "POST", body: JSON.stringify(plan.update) });
@@ -212,6 +218,6 @@ resolver.define("applySetup", async ({ payload }) => {
   } catch (e) {
     return { ok: false, message: e.message };
   }
-});
+}));
 
 export const handler = resolver.getDefinitions();
