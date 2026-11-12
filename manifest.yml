@@ -71,7 +71,7 @@ modules:
       function: checkDone
       actionVerb: GET
       description: |
-        Checks the GitHub pull requests that mention a Jira work item key: merged, checks passed, tests changed and not weakened.
+        Checks the GitHub or Bitbucket pull requests that mention a Jira work item key: merged, checks passed, tests changed and not weakened.
       inputs:
         issueKey:
           title: Work item key

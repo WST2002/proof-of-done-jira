@@ -110,10 +110,10 @@ function Admin() {
 
   return (
     <Stack space="space.300">
-      <Text>A work item moves to Done only when its GitHub pull requests are merged, their checks really passed and their tests were not weakened.</Text>
+      <Text>A work item moves to Done only when its GitHub or Bitbucket pull requests are merged, their checks really passed and their tests were not weakened.</Text>
 
       <Stack space="space.100">
-        <Label labelFor="repos">GitHub repositories</Label>
+        <Label labelFor="repos">Repositories</Label>
         <TextArea id="repos" value={repos} onChange={(e) => setRepos(e.target.value)} placeholder={"acme/shop\nPAY=acme/payments"} />
         <HelperMessage>One per line. GitHub: owner/name. Bitbucket Cloud: bitbucket:workspace/name. A line on its own is used for every project; KEY=repository sets it for one Jira project.</HelperMessage>
         {problems.filter((p) => !p.startsWith("The label")).map((p, i) => (
