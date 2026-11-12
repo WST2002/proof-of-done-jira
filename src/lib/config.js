@@ -48,3 +48,6 @@ export function skipReason(labels, skipLabel) {
 export function checkSkipLabel(label) {
   return /\s/.test(label ?? "") ? `The label "${label}" has spaces; Jira labels are single words like no-code.` : null;
 }
+
+// The work item key a Rovo or MCP caller asked about, however they typed it.
+export const issueKeyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();

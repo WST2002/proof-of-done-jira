@@ -8,7 +8,7 @@ import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt } from "./lib/receipt.js";
-import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL } from "./lib/config.js";
+import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
@@ -78,8 +78,6 @@ export async function onIssueUpdated(event) {
   });
 }
 
-const keyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();
-
 // Rovo and MCP callers see only work items their own Jira permissions allow, and a typo gets a clear answer.
 async function unseen(key) {
   if (!key) return "Tell me which work item to check, for example SHOP-12.";
@@ -88,7 +86,7 @@ async function unseen(key) {
 }
 
 export async function checkDone(payload) {
-  const key = keyOf(payload);
+  const key = issueKeyOf(payload);
   const missing = await unseen(key);
   if (missing) return missing;
   const v = await check(key);
@@ -97,7 +95,7 @@ export async function checkDone(payload) {
 
 // Rovo / MCP: every change that makes the tests prove less, as before → after.
 export async function getTestEvidence(payload) {
-  const key = keyOf(payload);
+  const key = issueKeyOf(payload);
   const missing = await unseen(key);
   if (missing) return missing;
   const v = await check(key);
@@ -107,7 +105,7 @@ export async function getTestEvidence(payload) {
 
 // Rovo / MCP: commit by commit, and where CI turned green after the tests were changed.
 export async function getTestTimeline(payload) {
-  const key = keyOf(payload);
+  const key = issueKeyOf(payload);
   const missing = await unseen(key);
   if (missing) return missing;
   const { config, token, bitbucketToken } = await settings();
