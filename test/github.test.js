@@ -49,3 +49,7 @@ test("reads a PR's commits with their own diffs and CI results for the timeline"
   assert.match(commits.at(-1).diff, /assert\.ok\(v\.done\)/);
   assert.ok(["passed", "failed", "running", "none"].includes(commits.at(-1).ci));
 });
+
+test("more linked pull requests than it can read blocks with a clear reason instead of checking only some", async () => {
+  await assert.rejects(linkedPullRequests({ fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-jira", key: "POD" }), /pull requests mention POD; Proof of Done reads up to 10/);
+});
