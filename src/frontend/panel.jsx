@@ -124,6 +124,41 @@ function Override({ onDone }) {
   );
 }
 
+// A block becomes the next piece of work: a task with the file, the line and the check before and after written in.
+function FixTask() {
+  const [state, setState] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const create = async () => {
+    setBusy(true);
+    try {
+      setState(await invoke("fixTask"));
+    } catch (e) {
+      setState({ ok: false, message: `The task was not created (${e.message}).` });
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (state?.ok) {
+    return (
+      <Inline space="space.075" alignBlock="center" shouldWrap>
+        <Lozenge appearance="success">{state.existing ? "fix task already open" : "fix task created"}</Lozenge>
+        <Link href={`/browse/${state.key}`}>{state.key}</Link>
+        <Text>has the evidence and the steps to close it.</Text>
+      </Inline>
+    );
+  }
+  return (
+    <Stack space="space.050">
+      <Inline space="space.100">
+        <Button onClick={create} isDisabled={busy}>
+          {busy ? "Creating…" : "Create a task to fix this"}
+        </Button>
+      </Inline>
+      {state?.message ? <Text>{state.message}</Text> : null}
+    </Stack>
+  );
+}
+
 function Panel() {
   const context = useProductContext();
   const key = context?.extension?.issue?.key ?? "this work item";
@@ -170,6 +205,8 @@ function Panel() {
       ) : null}
 
       {tampering?.evidence?.length ? <Evidence items={tampering.evidence} url={tampering.url} /> : null}
+
+      {!result.done && !result.failed && result.prs?.length ? <FixTask /> : null}
 
       {!result.done && !result.failed && result.prs?.length ? <Override onDone={setResult} /> : null}
 
