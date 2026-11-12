@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseRepos, formatRepos, repoFor } from "../src/lib/config.js";
+import { parseRepos, formatRepos, repoFor, issueKeyOf } from "../src/lib/config.js";
 
 test("a default repo and per-project repos are read from the admin's text", () => {
   const { config, problems } = parseRepos("acme/shop\nPAY = acme/payments\nweb=https://github.com/acme/website.git\n# a comment\n");
@@ -48,4 +48,10 @@ test("Bitbucket repositories are read as bitbucket:workspace/repo", () => {
   assert.equal(config.projects.SHOP, "bitbucket:wst2002rk/shop-demo");
   assert.equal(config.projects.WEB, "bitbucket:acme/website");
   assert.equal(formatRepos(config), "acme/shop\nSHOP=bitbucket:wst2002rk/shop-demo\nWEB=bitbucket:acme/website");
+});
+
+test("an MCP or Rovo caller's key is trimmed and upper-cased", () => {
+  assert.equal(issueKeyOf({ issueKey: " pod-6 " }), "POD-6");
+  assert.equal(issueKeyOf({ context: { jira: { issueKey: "SHOP-2" } } }), "SHOP-2");
+  assert.equal(issueKeyOf({}), "");
 });
