@@ -47,13 +47,24 @@ modules:
       prompt: |
         You check whether a Jira work item is really done.
         When asked about a work item, call the check-done action with its key.
+        To show how a test was changed, call get-test-evidence; to show which commit made CI green, call get-test-timeline.
         Report the result plainly: if it is not done, list each problem and what to fix.
         Never say a work item is done unless the action says so.
       conversationStarters:
         - Is this work item really done?
         - What is blocking this from Done?
+        - Which commit turned CI green?
       actions:
         - check-done
+        - get-test-evidence
+        - get-test-timeline
+  rovo:mcp:
+    - key: proof-of-done-mcp
+      name: Proof of Done
+      tools:
+        - check-done
+        - get-test-evidence
+        - get-test-timeline
   action:
     - key: check-done
       name: Check if a work item is really done
@@ -67,11 +78,39 @@ modules:
           type: string
           required: true
           description: The Jira work item key, for example SHOP-12.
+    - key: get-test-evidence
+      name: Show how tests were changed
+      function: getTestEvidence
+      actionVerb: GET
+      description: |
+        For a Jira work item key, lists each change in its pull requests that makes tests prove less (weakened, skipped or deleted tests, raised timeouts, retries), with file, line, and the assertion before and after.
+      inputs:
+        issueKey:
+          title: Work item key
+          type: string
+          required: true
+          description: The Jira work item key, for example SHOP-12.
+    - key: get-test-timeline
+      name: Show the test timeline
+      function: getTestTimeline
+      actionVerb: GET
+      description: |
+        For a Jira work item key, walks each commit of its pull requests: what the commit did to the tests, its CI result, and the commit where CI turned green after the tests were changed.
+      inputs:
+        issueKey:
+          title: Work item key
+          type: string
+          required: true
+          description: The Jira work item key, for example SHOP-12.
   function:
     - key: validate
       handler: index.validate
     - key: checkDone
       handler: index.checkDone
+    - key: getTestEvidence
+      handler: index.getTestEvidence
+    - key: getTestTimeline
+      handler: index.getTestTimeline
     - key: resolver
       handler: index.handler
     - key: receipt
@@ -89,6 +128,7 @@ permissions:
   scopes:
     - read:jira-work
     - write:jira-work
+    - manage:jira-configuration
     - storage:app
   external:
     fetch:

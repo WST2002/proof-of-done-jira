@@ -5,6 +5,7 @@ import resolverModule from "@forge/resolver";
 import { linkedPullRequests, githubCommitHistory } from "./lib/github.js";
 import { linkedBitbucketPullRequests, bitbucketCommitHistory } from "./lib/bitbucket.js";
 import { buildTimeline } from "./lib/timeline.js";
+import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt } from "./lib/receipt.js";
 import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL } from "./lib/config.js";
@@ -85,6 +86,39 @@ export async function checkDone(payload) {
 }
 
 // @forge/resolver is CommonJS; in an ES module its class arrives as .default.
+const keyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();
+
+// Rovo / MCP: every change that makes the tests prove less, as before → after.
+export async function getTestEvidence(payload) {
+  const key = keyOf(payload);
+  if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const v = await check(key);
+  const evidence = (v.problems ?? []).flatMap((p) => (p.evidence ?? []).map((e) => ({ pr: p.pr, ...e })));
+  return { issueKey: key, done: v.done, summary: evidence.length ? `${evidence.length} change(s) make the tests prove less.` : v.message, evidence, headsUp: (v.warnings ?? []).map((w) => w.text) };
+}
+
+// Rovo / MCP: commit by commit, and where CI turned green after the tests were changed.
+export async function getTestTimeline(payload) {
+  const key = keyOf(payload);
+  if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const { config, token, bitbucketToken } = await settings();
+  const repo = repoFor(config, key);
+  if (!repo) return { issueKey: key, message: "Proof of Done is not set up for this project yet." };
+  const prs = repo.startsWith("bitbucket:")
+    ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
+    : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
+  if (!prs.length) return { issueKey: key, message: "No pull request mentions this work item yet." };
+  const timelines = [];
+  for (const pr of prs) {
+    const commits = repo.startsWith("bitbucket:")
+      ? await bitbucketCommitHistory({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), number: pr.number })
+      : await githubCommitHistory({ fetch: api.fetch, token, repo, number: pr.number });
+    const t = buildTimeline(commits);
+    timelines.push({ pr: pr.number, url: pr.url, greenAfterTestChange: t.greenAfterTampering, commits: t.entries.map((e) => ({ commit: e.short, title: e.title, ci: e.ci, testChanges: e.findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${f.says}`), note: e.note })) });
+  }
+  return { issueKey: key, timelines };
+}
+
 const Resolver = resolverModule.default ?? resolverModule;
 const resolver = new Resolver();
 
@@ -120,6 +154,56 @@ resolver.define("saveSettings", async ({ payload }) => {
   if (payload.clearBitbucketToken) await kvs.deleteSecret(BB_TOKEN);
   else if (payload.bitbucketToken?.trim()) await kvs.setSecret(BB_TOKEN, payload.bitbucketToken.trim());
   return { ok: true, problems: [], hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
+});
+
+// --- guided setup: preview, then apply, the validator and condition on a project's transitions into Done ---------
+const jira = async (path, init) => {
+  const res = await api.asApp().requestJira(path, { headers: { Accept: "application/json", "Content-Type": "application/json" }, ...init });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.errorMessages?.[0] ?? `Jira ${res.status}`);
+  return body;
+};
+
+async function projectPlans(projectKey) {
+  const project = await jira(route`/rest/api/3/project/${projectKey}`);
+  if (project.style === "next-gen") return { project: project.name, teamManaged: true, plans: [] };
+  const schemes = await jira(route`/rest/api/3/workflowscheme/project?projectId=${project.id}`);
+  const scheme = schemes.values?.[0]?.workflowScheme;
+  const names = [...new Set([scheme?.defaultWorkflow, ...Object.values(scheme?.issueTypeMappings ?? {})].filter(Boolean))];
+  const read = await jira(route`/rest/api/3/workflows?expand=values.transitions`, { method: "POST", body: JSON.stringify({ workflowNames: names }) });
+  const plans = [];
+  for (const workflow of read.workflows ?? []) {
+    const caps = await jira(route`/rest/api/3/workflows/capabilities?workflowId=${workflow.id}`);
+    const mine = (type, key) => (caps.forgeRules ?? []).find((r) => r.ruleType === type && r.id?.endsWith(`/static/${key}`));
+    const validator = mine("Validator", "proof-of-done-validator");
+    const condition = mine("Condition", "proof-of-done-condition");
+    if (validator && condition) plans.push(planSetup({ workflow, statuses: read.statuses, validator, condition }));
+  }
+  return { project: project.name, teamManaged: false, plans };
+}
+
+resolver.define("projects", async () => {
+  const res = await jira(route`/rest/api/3/project/search?maxResults=50`);
+  return (res.values ?? []).map((p) => ({ key: p.key, name: p.name, teamManaged: p.style === "next-gen" }));
+});
+
+resolver.define("previewSetup", async ({ payload }) => {
+  try {
+    const { project, teamManaged, plans } = await projectPlans(payload.projectKey);
+    return { ok: true, project, teamManaged, plans: plans.map(({ workflow, changes, alreadyDone }) => ({ workflow, changes, alreadyDone })) };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
+});
+
+resolver.define("applySetup", async ({ payload }) => {
+  try {
+    const { plans } = await projectPlans(payload.projectKey);
+    for (const plan of plans.filter((p) => !p.alreadyDone)) await jira(route`/rest/api/3/workflows/update`, { method: "POST", body: JSON.stringify(plan.update) });
+    return { ok: true, applied: plans.filter((p) => !p.alreadyDone).length };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
 });
 
 export const handler = resolver.getDefinitions();
