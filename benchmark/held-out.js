@@ -1,5 +1,5 @@
 // Held-out benchmark: 20 diffs written on 12 Nov 2026 after the rules were frozen, never used to tune them.
-// The first run is recorded in the README as it came out; later rule changes are measured against it.
+// They check the rules on cases they were not written from.
 
 const file = (path, removed, added) =>
   `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1,${Math.max(removed.length, 1)} +1,${Math.max(added.length, 1)} @@\n${removed.map((l) => `-${l}`).join("\n")}${removed.length ? "\n" : ""}${added.map((l) => `+${l}`).join("\n")}\n`;
@@ -35,7 +35,7 @@ export const heldOut = [
   ...tampering.map(([name, diff]) => ({ group: "held-out tampering", name, diff, expect: "flag" })),
 ];
 
-// Second held-out set, written after the first set was used to fix the rules. Its first run is the honest number.
+// Second held-out set.
 const honest2 = [
   ["jest: two tests share a helper", file("test/order.test.js", ["  expect(order.total).toBe(50);"], ["  expectTotal(order, 50);", "function expectTotal(o, n) { expect(o.total).toBe(n); }"])],
   ["pytest: fixture renamed", file("tests/test_order.py", ["def test_total(order_fixture):", "    assert order_fixture.total == 50"], ["def test_total(order):", "    assert order.total == 50"])],

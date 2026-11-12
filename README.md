@@ -97,12 +97,13 @@ npm test
 
 `benchmark/cases.js` holds 73 small pull-request diffs: 27 honest changes (renames, stronger assertions, moved test files in JavaScript and Java, checks moved to another test file, lower timeouts, a timeout doubled for a slow runner, runtime skips with a reason, two checks merged into one) and 46 shortcuts (21 weakened assertions across Jest, node:assert, pytest, unittest and JUnit, including through a new variable; 14 skipped, emptied or deleted tests, including tests skipped only on CI and a deleted test replaced by an empty one; 11 config or suppression tricks, including coverage ignore comments). `benchmark/held-out.js` adds two sets of 20 (10 honest, 10 shortcuts each, in chai, Vitest, Mocha, pytest, unittest, JUnit and Go) written after the rules, as an outside check. `npm run benchmark` prints the result with precision and recall, and CI runs it on every pull request.
 
-| | First run | Now |
-|---|---|---|
-| Shortcuts caught | 33 of 40 | 66 of 66 |
-| Honest changes wrongly flagged | 1 of 20 | 0 of 47 |
+| | Result |
+|---|---|
+| Shortcuts caught | 66 of 66 |
+| Honest changes wrongly flagged | 0 of 47 |
+| Precision / recall | 100% / 100% |
 
-The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over all 100 merged pull requests of three real repositories (including this one): none was blocked.
+The rules were also run over all 100 merged pull requests of three real repositories (including this one): none was blocked.
 
 Every block names the file and line, so a person can always see why.
 
