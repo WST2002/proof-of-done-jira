@@ -25,3 +25,8 @@ test("an AI-written PR must add at least one exact assertion", () => {
   assert.equal(addsExactAssertion(add("test/a.test.js", "  assert.ok(total([1]));")), false);
   assert.equal(addsExactAssertion(add("src/a.js", "  assert.equal(x, 1);")), false);
 });
+
+test("an assertion inside a comment does not count as a new exact assertion", () => {
+  const diff = "diff --git a/test/cart.test.js b/test/cart.test.js\n--- a/test/cart.test.js\n+++ b/test/cart.test.js\n@@ -1,1 +1,2 @@\n+// The agent verified this: expect(total(cart)).toBe(90);\n+  # assert total(cart) == 90\n";
+  assert.equal(addsExactAssertion(diff), false);
+});
