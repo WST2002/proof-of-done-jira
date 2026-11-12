@@ -9,6 +9,7 @@ const at = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { hour: "2-di
 // What the work item needs, in the words a person would use.
 function headline(result, key) {
   if (result.failed || (!result.done && result.repo && !result.problems?.length)) return { appearance: "warning", title: "Could not check, so Done stays blocked", body: result.message };
+  if (result.overridden) return { appearance: "warning", title: "Done by a recorded override", body: `The check found the problems below, and an admin let this work item through. Reason: ${result.overridden.reason}` };
   if (result.skipped) return { appearance: "success", title: "No code needed", body: result.message };
   if (result.done) return { appearance: "success", title: "Ready for Done", body: "Every linked pull request is merged, its checks passed and its tests were kept honest. Next: move it to Done." };
   if (result.problems?.some((p) => p.kind === "no-pr")) return { appearance: "information", title: "No pull request yet", body: `Put ${key} in a pull request title or branch name, for example "${key}: fix the cart total". Work with no code can carry the label no-code.` };
@@ -95,7 +96,7 @@ function Override({ onDone }) {
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  if (!open) return <Button appearance="subtle" onClick={() => setOpen(true)}>Wrong block? Override (project admins)</Button>;
+  if (!open) return <Button appearance="subtle" onClick={() => setOpen(true)}>Wrong block? Override (admins)</Button>;
   const send = async () => {
     setBusy(true);
     try {
@@ -169,12 +170,6 @@ function Panel() {
       ) : null}
 
       {tampering?.evidence?.length ? <Evidence items={tampering.evidence} url={tampering.url} /> : null}
-
-      {result.overridden ? (
-        <SectionMessage appearance="warning" title="Done by a recorded override">
-          <Text>{`Reason: ${result.overridden.reason}`}</Text>
-        </SectionMessage>
-      ) : null}
 
       {!result.done && !result.failed && result.prs?.length ? <Override onDone={setResult} /> : null}
 
