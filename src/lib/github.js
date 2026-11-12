@@ -9,12 +9,14 @@ const MAX_FILES = 300;
 function client(fetch, token) {
   const headers = { Accept: "application/vnd.github+json", "User-Agent": "proof-of-done-jira", "X-GitHub-Api-Version": "2022-11-28" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  return async (path) => {
-    let res = await fetch(`${API}${path}`, { headers });
+  // asDiff: the raw unified diff of a pull request, which also carries changes the files API leaves out.
+  return async (path, asDiff = false) => {
+    const send = () => fetch(`${API}${path}`, { headers: asDiff ? { ...headers, Accept: "application/vnd.github.diff" } : headers });
+    let res = await send();
     // An expired or revoked token answers 401; public repositories still work without it, so drop it and carry on.
     if (res.status === 401 && headers.Authorization) {
       delete headers.Authorization;
-      res = await fetch(`${API}${path}`, { headers });
+      res = await send();
     }
     if (!res.ok) {
       const body = (await res.text()).slice(0, 200);
@@ -23,7 +25,7 @@ function client(fetch, token) {
       if (res.status === 404) throw new Error(`GitHub repository not found or not readable: ${path.split("/").slice(2, 4).join("/")}. Check GITHUB_REPO, and set GITHUB_TOKEN for a private repository.`);
       throw new Error(`GitHub ${res.status} for ${path}: ${body}`);
     }
-    return res.json();
+    return asDiff ? res.text() : res.json();
   };
 }
 
@@ -67,9 +69,15 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
     if (!mentions(pr.title, key) && !mentions(pr.head?.ref, key)) continue;
     const files = await pages(get, `/repos/${repo}/pulls/${pr.number}/files`);
     if (files.length >= MAX_FILES) throw new Error(`PR #${pr.number} changes ${MAX_FILES} or more files, more than Proof of Done can read in full. Split it into smaller pull requests.`);
-    // GitHub leaves out the diff of very large files; a test file whose change cannot be read cannot be called honest.
+    // The files API leaves out the change of very large files. For a test file, read the whole pull request diff
+    // instead; if even that lacks it, the test change cannot be called honest, so Done is blocked with the reason.
     const unreadable = files.find((f) => f.status !== "removed" && f.patch === undefined && isTestFile(f.filename) && f.changes > 0);
-    if (unreadable) throw new Error(`GitHub did not return the change to ${unreadable.filename} in PR #${pr.number} (too large), so its tests cannot be verified.`);
+    let diff = files.map((f) => `diff --git a/${f.filename} b/${f.filename}\n${f.status === "removed" ? "deleted file mode 100644\n" : ""}--- a/${f.filename}\n+++ b/${f.filename}\n${f.patch ?? ""}\n`).join("");
+    if (unreadable) {
+      diff = await pullRequestDiff({ fetch, token, repo, number: pr.number });
+      const part = diff.split(/^diff --git /m).find((d) => d.startsWith(`a/${unreadable.filename} `));
+      if (!part || !/^@@/m.test(part)) throw new Error(`GitHub did not return the change to ${unreadable.filename} in PR #${pr.number} (too large), so its tests cannot be verified.`);
+    }
     const checks = await checksOf(get, repo, pr.head.sha);
     const commits = await pages(get, `/repos/${repo}/pulls/${pr.number}/commits`, 1);
     prs.push({
@@ -78,7 +86,7 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
       sha: pr.head?.sha,
       merged: Boolean(pr.merged_at),
       files: files.map((f) => f.filename),
-      diff: files.map((f) => `diff --git a/${f.filename} b/${f.filename}\n${f.status === "removed" ? "deleted file mode 100644\n" : ""}--- a/${f.filename}\n+++ b/${f.filename}\n${f.patch ?? ""}\n`).join(""),
+      diff,
       checks: checks.map((c) => ({ name: c.name, status: c.status, conclusion: c.conclusion, url: c.html_url ?? c.details_url })),
       ai: detectAI([{ message: "", author: pr.user?.login }, ...commits.map((c) => ({ message: c.commit?.message, author: c.author?.login }))]),
     });
@@ -119,3 +127,6 @@ export async function pullMentions({ fetch, token, repo, number, key }) {
   const pr = await client(fetch, token)(`/repos/${repo}/pulls/${Number(number)}`);
   return mentions(pr.title, key) || mentions(pr.head?.ref, key);
 }
+
+/** The whole unified diff of a pull request, including large files the files API leaves out. */
+export const pullRequestDiff = ({ fetch, token, repo, number }) => client(fetch, token)(`/repos/${repo}/pulls/${Number(number)}`, true);
