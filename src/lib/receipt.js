@@ -26,7 +26,11 @@ export function receipt(v, at = new Date()) {
         ...(pr.ai ? [txt(` · commits credit ${pr.ai}, and it adds a new exact assertion`)] : []),
       )),
     });
-    content.push(para(txt("No test was weakened, skipped or deleted, and code changes came with test changes.")));
+    content.push(
+      v.overridden
+        ? para(bold("Moved to Done by override: "), { type: "mention", attrs: { id: v.overridden.accountId } }, txt(` overrode the check. Reason: ${v.overridden.reason}`))
+        : para(txt("No test was weakened, skipped or deleted, and code changes came with test changes.")),
+    );
   }
   if (v.warnings?.length) content.push(para(bold("Heads-up: "), txt(v.warnings.map((w) => w.text).join(" "))));
   content.push(para(txt(`Checked by Proof of Done (${RULES_VERSION}).`, [{ type: "em" }])));
@@ -43,6 +47,20 @@ export function afterDoneNote(v, at = new Date()) {
       para(txt("No receipt was written. The pull requests changed, or could not be read, after the move:")),
       para(txt(v.message)),
       para(txt(`Checked by Proof of Done (${RULES_VERSION}).`, [{ type: "em" }])),
+    ],
+  };
+}
+
+/** Comment posted when a project admin overrides a blocked check: who, why, what was blocked and which commits it covers. */
+export function overrideNote(saved, v) {
+  return {
+    type: "doc",
+    version: 1,
+    content: [
+      para(bold("Proof of Done override"), txt(" by "), { type: "mention", attrs: { id: saved.accountId } }),
+      para(bold("Reason: "), txt(saved.reason)),
+      para(txt(`What the check found: ${v.message}`)),
+      para(txt(`It covers commits ${saved.shas.map((s) => s.slice(0, 7)).join(", ")}; a new commit makes the check run again.`, [{ type: "em" }])),
     ],
   };
 }

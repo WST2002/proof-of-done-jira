@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { receipt, afterDoneNote } from "../src/lib/receipt.js";
+import { receipt, afterDoneNote, overrideNote } from "../src/lib/receipt.js";
 
 const text = (doc) => JSON.stringify(doc);
 
@@ -38,4 +38,20 @@ test("when the check fails right after the move to Done, the work item says so i
   assert.match(t, /moved to Done on 12 Nov 2026/);
   assert.match(t, /no receipt/i);
   assert.match(t, /PR #4: is not merged yet/);
+});
+
+test("an overridden work item's receipt names who overrode it and why", () => {
+  const t = text(receipt({ done: true, overridden: { accountId: "u1", reason: "Rounding change approved by finance" }, prs: [{ number: 2, url: "https://x/2", sha: "aaa1111", files: 1, checks: [] }], warnings: [] }, new Date("2026-11-12T06:00:00Z")));
+  assert.match(t, /override/i);
+  assert.match(t, /Rounding change approved by finance/);
+  assert.match(t, /"type":"mention","attrs":\{"id":"u1"\}/);
+  assert.doesNotMatch(t, /No test was weakened/);
+});
+
+test("an override is posted on the work item with who, why and the commits it covers", () => {
+  const t = text(overrideNote({ accountId: "u1", reason: "Rounding change approved by finance", shas: ["aaa1111bbb"] }, { message: "Not done yet:\n• PR #2: weakened" }));
+  assert.match(t, /"type":"mention","attrs":\{"id":"u1"\}/);
+  assert.match(t, /Rounding change approved by finance/);
+  assert.match(t, /aaa1111/);
+  assert.match(t, /PR #2: weakened/);
 });
