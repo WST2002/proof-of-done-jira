@@ -7,7 +7,8 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test test/*.test.js && node benchmark/run.js",
-    "benchmark": "node benchmark/run.js"
+    "benchmark": "node benchmark/run.js",
+    "mcp-check": "node scripts/mcp-check.mjs"
   },
   "dependencies": {
     "@forge/api": "^8.5.0",
@@ -16,5 +17,8 @@
     "@forge/react": "^12.5.0",
     "@forge/resolver": "^2.0.2",
     "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
   }
 }
