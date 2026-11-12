@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { receipt } from "../src/lib/receipt.js";
+import { receipt, afterDoneNote } from "../src/lib/receipt.js";
 
 const text = (doc) => JSON.stringify(doc);
 
@@ -31,4 +31,11 @@ test("AI-written PRs and heads-up warnings are on the receipt", () => {
   const t = text(receipt({ done: true, warnings: [{ text: "PR #3: src/a.js:9 drops an error without handling it." }], prs: [{ number: 3, url: "u", merged: true, files: 2, ai: "Claude", checks: [] }] }, new Date()));
   assert.match(t, /commits credit Claude/);
   assert.match(t, /drops an error/);
+});
+
+test("when the check fails right after the move to Done, the work item says so instead of staying silent", () => {
+  const t = text(afterDoneNote({ done: false, message: "Not done yet:\n• PR #4: is not merged yet." }, new Date("2026-11-12T06:00:00Z")));
+  assert.match(t, /moved to Done on 12 Nov 2026/);
+  assert.match(t, /no receipt/i);
+  assert.match(t, /PR #4: is not merged yet/);
 });

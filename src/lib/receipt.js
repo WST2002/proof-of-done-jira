@@ -8,7 +8,7 @@ const item = (...content) => ({ type: "listItem", content: [para(...content)] })
 const checkText = (c) => `${c.name}: ${c.conclusion === "success" ? "passed" : c.conclusion ?? c.status}`;
 const checkNode = (c) => (c.url ? link(checkText(c), c.url) : txt(checkText(c)));
 // Bumped when the rules change, so a receipt says which rules judged it.
-export const RULES_VERSION = "rules v2";
+export const RULES_VERSION = "rules v3";
 const when = (d) => d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
 
 /** Atlassian Document Format comment for a passed check `v` (from check()). */
@@ -31,4 +31,18 @@ export function receipt(v, at = new Date()) {
   if (v.warnings?.length) content.push(para(bold("Heads-up: "), txt(v.warnings.map((w) => w.text).join(" "))));
   content.push(para(txt(`Checked by Proof of Done (${RULES_VERSION}).`, [{ type: "em" }])));
   return { type: "doc", version: 1, content };
+}
+
+/** Comment for a work item that reached Done while the check, run right after, no longer passes. */
+export function afterDoneNote(v, at = new Date()) {
+  return {
+    type: "doc",
+    version: 1,
+    content: [
+      para(bold("⚠️ Proof of Done: moved to Done, but the check no longer passes"), txt(` · moved to Done on ${when(at)}`)),
+      para(txt("No receipt was written. The pull requests changed, or could not be read, after the move:")),
+      para(txt(v.message)),
+      para(txt(`Checked by Proof of Done (${RULES_VERSION}).`, [{ type: "em" }])),
+    ],
+  };
 }
