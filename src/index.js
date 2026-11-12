@@ -165,9 +165,10 @@ resolver.define("override", async ({ payload, context }) => {
   const bad = checkReason(payload.reason);
   if (bad) return { ok: false, message: bad };
   const project = key.split("-")[0];
-  const perm = await api.asUser().requestJira(route`/rest/api/3/mypermissions?projectKey=${project}&permissions=ADMINISTER_PROJECTS`, { headers: { Accept: "application/json" } });
-  const allowed = perm.ok && (await perm.json()).permissions?.ADMINISTER_PROJECTS?.havePermission;
-  if (!allowed) return { ok: false, message: `Only an admin of project ${project} can override Proof of Done.` };
+  // A project admin, or a Jira admin (who can administer every project but often holds no project role).
+  const perm = await api.asUser().requestJira(route`/rest/api/3/mypermissions?projectKey=${project}&permissions=ADMINISTER_PROJECTS,ADMINISTER`, { headers: { Accept: "application/json" } });
+  const granted = perm.ok ? (await perm.json()).permissions ?? {} : {};
+  if (!granted.ADMINISTER_PROJECTS?.havePermission && !granted.ADMINISTER?.havePermission) return { ok: false, message: `Only a Jira admin or an admin of project ${project} can override Proof of Done.` };
   const v = await evaluate(key);
   if (v.done) return { ok: false, message: "Nothing to override: the check passes." };
   if (!v.prs.length) return { ok: false, message: "Nothing to override: no pull request is linked. Use the no-code label for work without code." };
