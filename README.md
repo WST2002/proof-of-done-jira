@@ -28,7 +28,7 @@ The test-tampering rules are the same ones used by [proof-of-done](https://githu
 
 ## When a block is wrong
 
-A project admin can press **Wrong block? Override** on the work item and give a reason. Proof of Done checks the admin permission, posts the reason with the admin's name on the work item, and lets that work item through. The override covers only the commits that were checked: a new commit to any linked pull request makes the check run again.
+A project admin or a Jira admin can press **Wrong block? Override** on the work item and give a reason. Proof of Done checks that permission, posts the reason with the admin's name on the work item, and lets that work item through. The override covers only the commits that were checked: a new commit to any linked pull request makes the check run again.
 
 ## Try it in two minutes
 
