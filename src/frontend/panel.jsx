@@ -1,6 +1,6 @@
 // Work item panel: the same check the Done transition runs, shown before anyone tries to move the work item.
 import React, { useEffect, useState } from "react";
-import ForgeReconciler, { Box, Button, Code, Inline, Link, Lozenge, SectionMessage, Spinner, Stack, Strong, Text, useProductContext } from "@forge/react";
+import ForgeReconciler, { Box, Button, Code, Inline, Link, LinkButton, Lozenge, SectionMessage, Spinner, Stack, Strong, Text, useProductContext } from "@forge/react";
 import { invoke } from "@forge/bridge";
 
 const CHECK_STATE = (c) => (c.conclusion === "success" ? "success" : c.status !== "completed" ? "inprogress" : c.conclusion === "skipped" || c.conclusion === "neutral" ? "default" : "removed");
@@ -16,7 +16,7 @@ function headline(result, key) {
   return { appearance: "warning", title: "Not done yet", body: null };
 }
 
-function Evidence({ items }) {
+function Evidence({ items, url }) {
   return (
     <Stack space="space.100">
       {items.map((e, i) => (
@@ -36,12 +36,21 @@ function Evidence({ items }) {
                 <Code>{e.after}</Code>
               </Text>
             ) : null}
+            {e.why ? <Text>{e.why}</Text> : null}
           </Stack>
         </Box>
       ))}
+      {url ? (
+        <LinkButton appearance="primary" href={url} target="_blank">
+          Open the pull request
+        </LinkButton>
+      ) : null}
     </Stack>
   );
 }
+
+// Shown before the first pull request is linked, so a new user knows what the box is for.
+const WHY_CARD = "CI can turn green because a test was skipped, deleted or loosened. Proof of Done reads each pull request linked to this work item and keeps it out of Done until the tests still prove what they proved before.";
 
 const CI = { passed: ["success", "CI passed"], failed: ["removed", "CI failed"], running: ["inprogress", "CI running"], none: ["default", "no CI"] };
 
@@ -107,7 +116,13 @@ function Panel() {
         ) : null}
       </SectionMessage>
 
-      {tampering?.evidence?.length ? <Evidence items={tampering.evidence} /> : null}
+      {result.problems?.some((p) => p.kind === "no-pr") || (!result.repo && !result.skipped) ? (
+        <SectionMessage appearance="discovery" title="Why Proof of Done">
+          <Text>{WHY_CARD}</Text>
+        </SectionMessage>
+      ) : null}
+
+      {tampering?.evidence?.length ? <Evidence items={tampering.evidence} url={tampering.url} /> : null}
 
       {result.warnings?.length ? (
         <SectionMessage appearance="information" title="Heads-up (not blocking)">
@@ -128,7 +143,7 @@ function Panel() {
               </Link>
               <Lozenge appearance={pr.merged ? "success" : "moved"}>{pr.merged ? "merged" : "not merged"}</Lozenge>
               <Text>{pr.files === 1 ? "1 file" : `${pr.files} files`}</Text>
-              {pr.ai ? <Lozenge appearance="new">{`written with ${pr.ai}`}</Lozenge> : null}
+              {pr.ai ? <Lozenge appearance="new">{`commits credit ${pr.ai}`}</Lozenge> : null}
             </Inline>
             <Timeline number={pr.number} />
             <Inline space="space.075" shouldWrap>

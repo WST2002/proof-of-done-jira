@@ -1,4 +1,4 @@
-// Benchmark: 20 honest changes that must pass and 40 test-tampering changes that must be caught.
+// Benchmark: 21 honest changes that must pass and 40 test-tampering changes that must be caught.
 // Each case is a small unified diff, like one pull request.
 
 const file = (path, removed, added) =>
@@ -26,6 +26,7 @@ const honest = [
   ["catch that logs and rethrows", file("src/save.js", ["  await save(cart);"], ["  try { await save(cart); } catch (e) { log(e); throw e; }"])],
   ["HTTP timeout in app code", file("src/client.js", ["  timeout: 5000,"], ["  timeout: 30000,"])],
   ["refactor a test helper", file("test/helpers.js", ["export const make = () => ({ items: [] });"], ["export const makeCart = (items = []) => ({ items });"])],
+  ["small timeout bump", file("test/api.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(7000);"])],
   ["runtime skip with a reason (node:test)", file("test/clip.test.mjs", ["  const tool = find();"], ["  if (!tool) return t.skip('no clipboard tool on this machine');"])],
 ];
 

@@ -23,7 +23,7 @@ export function receipt(v, at = new Date()) {
         link(`PR #${pr.number}`, pr.url),
         txt(` merged${pr.sha ? ` at commit ${pr.sha.slice(0, 7)}` : ""} · ${pr.files} file${pr.files === 1 ? "" : "s"} · `),
         ...(pr.checks.length ? pr.checks.flatMap((c, i) => (i ? [txt(", "), checkNode(c)] : [checkNode(c)])) : [txt("no CI checks")]),
-        ...(pr.ai ? [txt(` · written with ${pr.ai}, with a new exact assertion`)] : []),
+        ...(pr.ai ? [txt(` · commits credit ${pr.ai}, and it adds a new exact assertion`)] : []),
       )),
     });
     content.push(para(txt("No test was weakened, skipped or deleted, and code changes came with test changes.")));

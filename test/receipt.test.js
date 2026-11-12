@@ -29,6 +29,6 @@ test("a no-code receipt says why no PR was needed", () => {
 
 test("AI-written PRs and heads-up warnings are on the receipt", () => {
   const t = text(receipt({ done: true, warnings: [{ text: "PR #3: src/a.js:9 drops an error without handling it." }], prs: [{ number: 3, url: "u", merged: true, files: 2, ai: "Claude", checks: [] }] }, new Date()));
-  assert.match(t, /written with Claude/);
+  assert.match(t, /commits credit Claude/);
   assert.match(t, /drops an error/);
 });
