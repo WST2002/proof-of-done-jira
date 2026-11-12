@@ -7,12 +7,14 @@ import { linkedBitbucketPullRequests, bitbucketCommitHistory, bitbucketPullMenti
 import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
-import { receipt, afterDoneNote } from "./lib/receipt.js";
+import { receipt, afterDoneNote, overrideNote } from "./lib/receipt.js";
+import { overrideFor, checkReason } from "./lib/override.js";
 import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
 const BB_TOKEN = "bitbucket-token";
+const OVERRIDE = "proof-of-done-override";
 
 async function settings() {
   const saved = (await kvs.get(CONFIG)) ?? {};
@@ -52,7 +54,12 @@ async function evaluate(key) {
     const prs = repo.startsWith("bitbucket:")
       ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
       : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
-    return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai, sha }) => ({ number, url, merged, checks, files: files.length, ai, sha })) };
+    const v = { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai, sha }) => ({ number, url, merged, checks, files: files.length, ai, sha })) };
+    if (v.done) return v;
+    // A project admin's recorded override lets this work item through, but only for the commits it was given for.
+    const saved = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${OVERRIDE}`, { headers: { Accept: "application/json" } });
+    const overridden = saved.ok ? overrideFor((await saved.json()).value, v.prs) : null;
+    return overridden ? { ...v, done: true, overridden, message: `Done by a recorded override. Reason: ${overridden.reason}` } : v;
   } catch (e) {
     return { done: false, repo, prs: [], problems: [], message: `Could not check ${hostOf(repo)}, so Done is blocked for now: ${e.message}` };
   }
@@ -151,6 +158,28 @@ const admin = (fn) => async (req) => {
 };
 
 resolver.define("check", async ({ context }) => check(context.extension.issue.key));
+
+// A project admin lets a blocked work item through, with a reason that is saved and posted on the work item.
+resolver.define("override", async ({ payload, context }) => {
+  const key = context.extension.issue.key;
+  const bad = checkReason(payload.reason);
+  if (bad) return { ok: false, message: bad };
+  const project = key.split("-")[0];
+  const perm = await api.asUser().requestJira(route`/rest/api/3/mypermissions?projectKey=${project}&permissions=ADMINISTER_PROJECTS`, { headers: { Accept: "application/json" } });
+  const allowed = perm.ok && (await perm.json()).permissions?.ADMINISTER_PROJECTS?.havePermission;
+  if (!allowed) return { ok: false, message: `Only an admin of project ${project} can override Proof of Done.` };
+  const v = await evaluate(key);
+  if (v.done) return { ok: false, message: "Nothing to override: the check passes." };
+  if (!v.prs.length) return { ok: false, message: "Nothing to override: no pull request is linked. Use the no-code label for work without code." };
+  const saved = { accountId: context.accountId, at: new Date().toISOString(), reason: String(payload.reason).trim(), shas: v.prs.map((p) => p.sha) };
+  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${OVERRIDE}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(saved) });
+  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ body: overrideNote(saved, v) }),
+  });
+  return { ok: true, result: await check(key) };
+});
 
 // Commit by commit: what each push did to the tests, and where CI turned green. Loaded on request (more API calls).
 resolver.define("timeline", async ({ payload, context }) => {

@@ -10,8 +10,8 @@ const TEST_FILE = [
 // A whole test turned off. A skip inside a test with a reason (t.skip("no clipboard here")) is an environment guard, not tampering.
 const SKIP = /\b(?:it|test|describe|context|suite|specify)\.(?:skip|only|todo)\s*\(|\b(?:xit|xdescribe|xtest|fit|fdescribe)\s*\(|@pytest\.mark\.(?:skip|skipif|xfail)\b|@unittest\.skip|#\[ignore\]|@Disabled\b|@Ignore\b/;
 const ALWAYS_PASSES = /expect\(\s*(true|1)\s*\)\.(toBe|toEqual)\(\s*(true|1)\s*\)|\bassert\s+True\b|assert\.ok\(\s*true\s*\)|assertTrue\(\s*true\s*\)|\bassert\(\s*true\s*\)/;
-const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+[^=!<>]+?(\s+is\s+not\s+None)?\s*$|\bself\.assert(True|IsNotNone)\(|\bassertNotNull\(|\bassertTrue\(.*!=\s*null\s*\)/;
-const STRONG = /\.(toBe|toEqual|toStrictEqual|toMatch|toContain|toHaveLength|toThrow|toHaveBeenCalledWith)\(\s*\S|\bassert\w*\s*\(?.*(==|!=|Equal|In\b)|\bassert\.(equal|deepEqual|strictEqual|deepStrictEqual|match|throws)\(/;
+const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+[^=!<>]+?(\s+is\s+not\s+None)?\s*$|\bself\.assert(True|IsNotNone)\(|\bassertNotNull\(|\bassertTrue\(.*!=\s*null\s*\)|\.to\.(?:exist|be\.ok|not\.be\.(?:null|undefined))\b|\.toHaveBeenCalled\(\s*\)|\.toBeGreaterThan\(\s*0\s*\)|\bassert\s+len\(.+\)\s*>\s*0\s*$|\bassertTrue\(.*>\s*0\s*\)|\.toMatchObject\(\s*\{\s*\}\s*\)|\bassert\s+isinstance\(/;
+const STRONG = /\.(toBe|toEqual|toStrictEqual|toMatch|toContain|toHaveLength|toThrow|toHaveBeenCalledWith)\(\s*\S|\.toMatch(?:Inline)?Snapshot\(|\.to\.(?:deep\.)?(?:equal|eql|include|match|have\.length)\(|\bt\.(?:Errorf|Fatalf|Error|Fatal)\(|\bassert\w*\s*\(?.*(==|!=|Equal|In\b)|\bassert\.(equal|deepEqual|strictEqual|deepStrictEqual|match|throws)\(/;
 const TEST_CASE = /^\s*(it|test|describe|xit|fit|xdescribe|fdescribe)(\.\w+)*\s*\(|^\s*(async\s+)?def\s+test_|^\s*func\s+Test\w*\(|@Test\b/;
 const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|\b(?:istanbul|c8|v8)\s+ignore\b|#\s*noqa\b|#\s*type:\s*ignore|\/\/\s*nolint\b|@SuppressWarnings\b|#\s*pragma:\s*no cover/;
 const THRESHOLD = /\b(branches|functions|lines|statements|fail_under|fail-under|cov-fail-under)["']?\s*[:=]?\s*(\d+(?:\.\d+)?)/;
@@ -26,7 +26,10 @@ const TIMEOUTS = [
   /^\s*\}\s*,\s*(\d{3,})\s*\)\s*;?\s*$/,
 ];
 // Retries make a flaky test pass on a later try.
-const RETRY = /\bjest\.retryTimes\(\s*[1-9]|\bthis\.retries\(\s*[1-9]|@pytest\.mark\.flaky\b|--reruns\b|\bretries["']?\s*[:=]\s*[1-9]/;
+const RETRY = /\bjest\.retryTimes\(\s*[1-9]|\bthis\.retries\(\s*[1-9]|@pytest\.mark\.flaky\b|--reruns\b|\bretries["']?\s*[:=]\s*[1-9]|\bretry["']?\s*:\s*[1-9]/;
+// The retry count, so lowering retries (2 to 1) is not read as adding them.
+const RETRY_COUNT = /\b(?:jest\.retryTimes|this\.retries)\(\s*(\d+)|\bretries["']?\s*[:=]\s*(\d+)|--reruns[ =](\d+)/;
+const retries = (text) => Number(RETRY_COUNT.exec(text)?.slice(1).find((n) => n !== undefined) ?? NaN);
 // An error caught and dropped: an empty catch, or one that only returns an empty value.
 const SWALLOW = /\bcatch\s*(\([^)]*\))?\s*\{\s*(return\s*(\[\s*\]|\{\s*\}|null|undefined|false|""|0)?\s*;?)?\s*\}|\.catch\(\s*(\(\s*\w*\s*\)|\w+)\s*=>\s*(\{\s*\}|null|undefined|\[\s*\])\s*\)|^\s*except\b[^:]*:\s*pass\s*$/;
 const PY_EXCEPT = /^\s*except\b[^:]*:\s*$/;
@@ -78,6 +81,9 @@ const withoutStrings = (text) =>
 function subject(text) {
   const jest = /expect\(\s*(.+?)\s*\)\s*\.(?:not\.)?to/.exec(text);
   if (jest) return jest[1].trim();
+  // Python assert len(x) > 0 / assert isinstance(x, T): what it looks at is x.
+  const len = /\bassert\s+(?:len|isinstance)\(\s*([\w.]+)/.exec(text);
+  if (len) return len[1];
   // assert.ok(x) / assertTrue(x) / assertNotNull(x) / Python assert x: the first name the assertion looks at.
   const call = /\b(?:assert|self\.assert|assert)\w*(?:\.ok)?\(\s*(?:await\s+)?([\w.]+)/.exec(text) ?? /\bassert\s+(?:await\s+)?([\w.]+)/.exec(text);
   return call?.[1];
@@ -142,10 +148,15 @@ export function findTampering(diff, ignore = () => false) {
         if (SUPPRESS.test(code)) add("suppressed");
         else if (test && SKIP.test(code)) add("skipped", removed.find((r) => TEST_CASE.test(r.text))?.text);
         else if (test && ALWAYS_PASSES.test(code)) add("always-passes");
+        // An assertion inside a catch that drops the error can never fail the test.
+        else if (test && ANY_ASSERT.test(code) && SWALLOW.test(code)) add("always-passes");
         else if (test && WEAK.test(code) && replacedStrong(text, removed, added)) add("weakened", replacedStrong(text, removed, added).text);
         else if (test && SKIP_CALL.test(code) && [...added, ...context].some((a) => CI_ENV.test(a.text))) add("skipped");
+        // A skip as the first line of a test turns the whole test off, with no condition at all.
+        else if (test && SKIP_CALL.test(code) && /^\s*(?:func\s+Test\w*\(|def\s+test_\w*\(|(?:it|test)\s*\()/.test(added[added.findIndex((a) => a.line === line) - 1]?.text ?? "")) add("skipped");
         if (test || TEST_CONFIG.test(file.path)) {
-          if (RETRY.test(code)) add("retry");
+          const was = removed.map((r) => retries(withoutStrings(r.text))).find((n) => !Number.isNaN(n));
+          if (RETRY.test(code) && !(was >= retries(code))) add("retry");
           for (const re of TIMEOUTS) {
             const now = re.exec(code)?.[1];
             const was = removed.map((r) => re.exec(withoutStrings(r.text))?.[1]).find(Boolean);

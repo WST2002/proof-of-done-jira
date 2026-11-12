@@ -12,6 +12,8 @@ Proof of Done is a Forge app. When someone moves a work item to Done, it looks u
 
 An error caught and dropped without handling is shown as a heads-up, not a block, because it is sometimes deliberate.
 
+**How it differs:** checklist apps check that boxes are ticked, and delivery checks look at merges and CI. None of them check whether the tests themselves were weakened to get green. Proof of Done reads the test diff and does.
+
 If something is missing, Jira shows exactly what, with file and line, the line before and after, and one sentence on why that change is suspicious, so the fix is obvious.
 
 Work that needs no code (design, research, a meeting) gets the label `no-code` and moves to Done without a pull request. Admins can change that label in the settings page.
@@ -23,6 +25,10 @@ When the work item reaches Done, Proof of Done leaves an **audit receipt** comme
 Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
 
 The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
+
+## When a block is wrong
+
+A project admin can press **Wrong block? Override** on the work item and give a reason. Proof of Done checks the admin permission, posts the reason with the admin's name on the work item, and lets that work item through. The override covers only the commits that were checked: a new commit to any linked pull request makes the check run again.
 
 ## Try it in two minutes
 
@@ -89,14 +95,14 @@ npm test
 
 ## How accurate is it?
 
-`benchmark/cases.js` holds 73 small pull-request diffs: 27 honest changes (renames, stronger assertions, moved test files in JavaScript and Java, checks moved to another test file, lower timeouts, a timeout doubled for a slow runner, runtime skips with a reason, two checks merged into one) and 46 shortcuts (21 weakened assertions across Jest, node:assert, pytest, unittest and JUnit, including through a new variable; 14 skipped, emptied or deleted tests, including tests skipped only on CI and a deleted test replaced by an empty one; 11 config or suppression tricks, including coverage ignore comments). `npm run benchmark` prints the result, and CI runs it on every pull request.
+`benchmark/cases.js` holds 73 small pull-request diffs: 27 honest changes (renames, stronger assertions, moved test files in JavaScript and Java, checks moved to another test file, lower timeouts, a timeout doubled for a slow runner, runtime skips with a reason, two checks merged into one) and 46 shortcuts (21 weakened assertions across Jest, node:assert, pytest, unittest and JUnit, including through a new variable; 14 skipped, emptied or deleted tests, including tests skipped only on CI and a deleted test replaced by an empty one; 11 config or suppression tricks, including coverage ignore comments). `benchmark/held-out.js` adds two sets of 20 (10 honest, 10 shortcuts each, in chai, Vitest, Mocha, pytest, unittest, JUnit and Go) written after the rules, as an outside check. `npm run benchmark` prints the result with precision and recall, and CI runs it on every pull request.
 
 | | First run | Now |
 |---|---|---|
-| Shortcuts caught | 33 of 40 | 46 of 46 |
-| Honest changes wrongly flagged | 1 of 20 | 0 of 27 |
+| Shortcuts caught | 33 of 40 | 66 of 66 |
+| Honest changes wrongly flagged | 1 of 20 | 0 of 47 |
 
-The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over all 97 merged pull requests of three real repositories (including this one): none was blocked.
+The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over all 100 merged pull requests of three real repositories (including this one): none was blocked.
 
 Every block names the file and line, so a person can always see why.
 
