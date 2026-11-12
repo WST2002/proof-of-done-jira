@@ -1,7 +1,7 @@
 // Real GitHub, no mocks: a merged PR in a public repo that mentions "0.4.2" in its title.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { linkedPullRequests, pullMentions } from "../src/lib/github.js";
+import { linkedPullRequests, pullMentions, pullRequestDiff } from "../src/lib/github.js";
 import { verdict } from "../src/lib/verdict.js";
 
 test("finds the PR that mentions the key and reads its files, diff and checks", async () => {
@@ -58,4 +58,10 @@ test("the timeline is only read for a pull request that belongs to the work item
   const opts = { fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-jira", number: 26 };
   assert.equal(await pullMentions({ ...opts, key: "POD-32" }), true);
   assert.equal(await pullMentions({ ...opts, key: "POD-6" }), false);
+});
+
+test("the whole pull request diff can be read when the files list leaves a large file out", async () => {
+  const diff = await pullRequestDiff({ fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-jira", number: 26 });
+  assert.match(diff, /^diff --git a\/test\/config\.test\.js b\/test\/config\.test\.js/m);
+  assert.match(diff, /^\+.*assert\.ok\(checkSkipLabel/m);
 });
