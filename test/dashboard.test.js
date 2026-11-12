@@ -67,6 +67,12 @@ test("an override saved before records carried it still shows on the dashboard",
   assert.equal(d.overrides[0].reason, "old reason");
 });
 
+test("an override voided by a new commit no longer counts: the work item is blocked again", () => {
+  const d = summarize([{ key: "SHOP-8", summary: "Re-pushed", status: "In Review", record: checkRecord(weakened, at), override: { accountId: "x", reason: "given for the old commit", shas: ["old"] } }]);
+  assert.equal(d.counts.overridden, 0);
+  assert.deepEqual(d.blocked.map((b) => b.key), ["SHOP-8"]);
+});
+
 test("the settings page groups the counts by project, busiest first, and skips projects never checked", () => {
   const rows = byProject([
     { key: "PAY-1", record: checkRecord(weakened, at) },
@@ -79,7 +85,7 @@ test("the settings page groups the counts by project, busiest first, and skips p
 
 test("the fix task names the weakened test, shows before and after, and says how to close the loop", () => {
   const t = fixTask("SHOP-2", weakened);
-  assert.equal(t.summary, "Restore the tests weakened for SHOP-2 (PR #2)");
+  assert.equal(t.summary, "Restore the tests changed to pass for SHOP-2 (PR #2)");
   const body = JSON.stringify(t.description);
   assert.match(body, /test\/cart\.test\.js/);
   assert.match(body, /assert\.equal\(roundPrice\(10\.456\), 10\.46\);/);

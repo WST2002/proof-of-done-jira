@@ -14,7 +14,7 @@ export function fixTask(key, v) {
   const tampering = problems.filter((p) => p.kind === "tampering");
   const prs = [...new Set(problems.map((p) => p.pr).filter(Boolean))];
   const prText = prs.length ? ` (${prs.map((n) => `PR #${n}`).join(", ")})` : "";
-  const summary = tampering.length ? `Restore the tests weakened for ${key}${prText}` : `Fix what keeps ${key} out of Done${prText}`;
+  const summary = tampering.length ? `Restore the tests changed to pass for ${key}${prText}` : `Fix what keeps ${key} out of Done${prText}`;
 
   const content = [para(txt("Proof of Done blocked "), bold(key), txt(" from moving to Done. This task is the work to fix it."))];
   const others = problems.filter((p) => p.kind !== "tampering");
@@ -29,7 +29,7 @@ export function fixTask(key, v) {
       ...(e.why ? [txt(` ${e.why}`)] : []),
     ))));
   }
-  content.push(para(bold("When it is fixed: "), txt(`put ${key} in the fix pull request's title or branch (for example "${key}: restore the exact checks"), merge it with green CI, then press Check again on ${key}.`)));
+  content.push(para(bold("When it is fixed: "), txt(`put ${key} and this task's key in the fix pull request's title or branch (for example "${key}: restore the exact checks"), merge it with green CI, then press Check again on ${key}.`)));
   content.push(para(txt("Created by Proof of Done.", [{ type: "em" }])));
   return { summary: summary.length > 250 ? `${summary.slice(0, 249)}…` : summary, description: { type: "doc", version: 1, content } };
 }

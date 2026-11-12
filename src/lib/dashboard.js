@@ -7,7 +7,8 @@
  */
 export function summarize(issues) {
   const checked = issues.filter((i) => i.record);
-  const overrideOf = (i) => i.record?.overridden ?? (i.override?.reason ? i.override : null);
+  // New records say whether the override still applies (a new commit voids it); older records only had `passed`.
+  const overrideOf = (i) => (i.record?.kinds ? i.record.overridden : i.record?.overridden ?? (i.override?.reason ? i.override : null));
   const blocked = checked.filter((i) => !i.record.passed && !overrideOf(i));
   const caught = checked.filter((i) => (i.record.kinds ?? []).includes("tampering"));
   const overrides = issues.filter((i) => overrideOf(i)).map((i) => ({ ...i, override: overrideOf(i) }));
