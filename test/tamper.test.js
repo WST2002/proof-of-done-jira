@@ -80,10 +80,11 @@ test("raising a test timeout is caught", () => {
   assert.deepEqual(kinds(diff("jest.config.js", ["  testTimeout: 5000,"], ["  testTimeout: 120000,"])), ["timeout"]);
 });
 
-test("a small timeout bump is not tampering, only a big jump is", () => {
+test("a timeout up to double is tuning; more than double is tampering", () => {
   assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(6000);"])), []);
   assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(9999);"])), []);
-  assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(10000);"])), ["timeout"]);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(10000);"])), []);
+  assert.deepEqual(kinds(diff("test/a.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(10001);"])), ["timeout"]);
 });
 
 test("lowering a timeout is fine", () => {

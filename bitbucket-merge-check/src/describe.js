@@ -2,12 +2,13 @@
 const SAYS = {
   "deleted-file": "deletes a test file",
   "removed-tests": "removes tests",
+  "removed-assertions": "takes out exact checks and adds none back",
   suppressed: "hides an error or warning",
   skipped: "skips or focuses tests",
   "always-passes": "adds an assertion that can never fail",
   weakened: "replaces an exact assertion with a weaker one",
   threshold: "lowers a coverage threshold",
-  timeout: "raises a test timeout",
+  timeout: "more than doubles a test timeout",
   retry: "retries a failing test until it passes",
   swallowed: "drops an error without handling it",
 };

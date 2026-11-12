@@ -11,12 +11,13 @@ const MAX_FINDINGS = 4;
 const DESCRIBE = {
   "deleted-file": "deletes a test file",
   "removed-tests": "removes tests",
+  "removed-assertions": "takes out exact checks and adds none back",
   suppressed: "hides an error or warning",
   skipped: "skips or focuses tests",
   "always-passes": "adds an assertion that can never fail",
   weakened: "replaces an exact assertion with a weaker one",
   threshold: "lowers a coverage threshold",
-  timeout: "raises a test timeout",
+  timeout: "more than doubles a test timeout",
   retry: "retries a failing test until it passes",
   swallowed: "drops an error without handling it",
 };
@@ -24,6 +25,7 @@ const DESCRIBE = {
 const WHY = {
   "deleted-file": "Every test in this file stopped running, so nothing checks that code any more.",
   "removed-tests": "Fewer tests run than before, and no new ones replace them.",
+  "removed-assertions": "The tests still run, but the lines that checked the result are gone, so they pass whatever the code does.",
   suppressed: "The error is still there; it is only hidden from the tools that would report it.",
   skipped: "The test no longer runs (or only a few tests run), so a failure cannot turn CI red.",
   "always-passes": "This line passes whatever the code does, so it proves nothing.",
@@ -61,7 +63,7 @@ function prProblems(pr, warnings) {
   for (const f of all.filter((x) => WARN_ONLY.has(x.kind))) warn(`${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]} (${f.text}).`);
   const findings = all.filter((x) => !WARN_ONLY.has(x.kind));
   if (findings.length) {
-    const listed = findings.slice(0, MAX_FINDINGS).map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]}${f.text && f.kind !== "removed-tests" ? ` (${f.text})` : ""}`);
+    const listed = findings.slice(0, MAX_FINDINGS).map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]}${f.text && f.kind !== "removed-tests" && f.kind !== "removed-assertions" ? ` (${f.text})` : ""}`);
     if (findings.length > MAX_FINDINGS) listed.push(`and ${findings.length - MAX_FINDINGS} more`);
     add("tampering", `changes that can make checks pass without fixing anything: ${listed.join("; ")}.`);
     // The panel shows each change as before → after: the moment a reviewer sees why green is not proof.

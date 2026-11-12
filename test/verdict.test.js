@@ -108,7 +108,7 @@ test("raised timeouts and new retries block Done", () => {
   const pr = { ...goodPr, diff: goodPr.diff + diff("test/load.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(60000);", "jest.retryTimes(3);"]) };
   const v = verdict([pr]);
   assert.equal(v.done, false);
-  assert.match(v.problems[0].text, /raises a test timeout/);
+  assert.match(v.problems[0].text, /more than doubles a test timeout/);
   assert.match(v.problems[0].text, /retries a failing test/);
 });
 

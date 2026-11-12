@@ -4,6 +4,7 @@ import { findTampering } from "./tamper.js";
 const SAYS = {
   "deleted-file": "deleted a test file",
   "removed-tests": "removed tests",
+  "removed-assertions": "took out exact checks",
   suppressed: "hid an error or warning",
   skipped: "skipped or focused tests",
   "always-passes": "added an assertion that can never fail",
