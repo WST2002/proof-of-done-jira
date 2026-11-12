@@ -21,6 +21,19 @@ const DESCRIBE = {
   retry: "retries a failing test until it passes",
   swallowed: "drops an error without handling it",
 };
+// Why each change is suspicious, in words a reviewer who skips the diff still understands.
+const WHY = {
+  "deleted-file": "Every test in this file stopped running, so nothing checks that code any more.",
+  "removed-tests": "Fewer tests run than before, and no new ones replace them.",
+  suppressed: "The error is still there; it is only hidden from the tools that would report it.",
+  skipped: "The test no longer runs (or only a few tests run), so a failure cannot turn CI red.",
+  "always-passes": "This line passes whatever the code does, so it proves nothing.",
+  weakened: "The old line checked one exact value. The new one passes for almost any value, so a wrong result would still go green.",
+  threshold: "Less of the code has to be tested before CI goes green.",
+  timeout: "A slow or hanging test now gets far more time before it fails.",
+  retry: "A test that fails now and then is run again until it passes once.",
+  swallowed: "The error is caught and ignored, so the caller never learns something went wrong.",
+};
 // Worth a look, but sometimes deliberate (a best-effort save, browser storage in private mode): shown, never blocking.
 const WARN_ONLY = new Set(["swallowed"]);
 
@@ -41,8 +54,8 @@ function prProblems(pr, warnings) {
 
   const code = pr.files.filter((f) => !NON_CODE.test(f) && !isTestFile(f));
   if (code.length && !pr.files.some(isTestFile)) add("no-test-change", `changes code (${code.slice(0, 3).join(", ")}) but no test.`);
-  // Work written with an AI agent must prove itself with at least one new exact assertion, not just touched test files.
-  if (pr.ai && code.length && !addsExactAssertion(pr.diff ?? "")) add("ai-no-assertion", `was written with ${pr.ai} and adds no new exact assertion to a test.`);
+  // Work whose commits credit an AI agent must prove itself with at least one new exact assertion, not just touched test files.
+  if (pr.ai && code.length && !addsExactAssertion(pr.diff ?? "")) add("ai-no-assertion", `its commits credit ${pr.ai} and it adds no new exact assertion to a test.`);
 
   const all = findTampering(pr.diff ?? "");
   for (const f of all.filter((x) => WARN_ONLY.has(x.kind))) warn(`${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]} (${f.text}).`);
@@ -52,7 +65,7 @@ function prProblems(pr, warnings) {
     if (findings.length > MAX_FINDINGS) listed.push(`and ${findings.length - MAX_FINDINGS} more`);
     add("tampering", `changes that can make checks pass without fixing anything: ${listed.join("; ")}.`);
     // The panel shows each change as before → after: the moment a reviewer sees why green is not proof.
-    out.at(-1).evidence = findings.slice(0, MAX_FINDINGS).map(({ file, line, kind, text, before }) => ({ file, line, kind, says: DESCRIBE[kind], after: text, before }));
+    out.at(-1).evidence = findings.slice(0, MAX_FINDINGS).map(({ file, line, kind, text, before }) => ({ file, line, kind, says: DESCRIBE[kind], why: WHY[kind], after: text, before }));
   }
   return out;
 }

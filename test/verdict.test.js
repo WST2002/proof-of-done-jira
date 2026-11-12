@@ -116,7 +116,7 @@ test("an AI-written PR without a new exact assertion is blocked", () => {
   const pr = { ...goodPr, ai: "Claude", diff: diff("src/price.js", ["return p"], ["return p * 0.9"]) + diff("test/price.test.js", ["// old"], ["// renamed comment"]) };
   const v = verdict([pr]);
   assert.equal(v.done, false);
-  assert.match(v.problems.find((p) => p.kind === "ai-no-assertion").text, /written with Claude and adds no new exact assertion/);
+  assert.match(v.problems.find((p) => p.kind === "ai-no-assertion").text, /commits credit Claude and it adds no new exact assertion/);
 });
 
 test("an AI-written PR with a new exact assertion passes", () => {
@@ -126,5 +126,5 @@ test("an AI-written PR with a new exact assertion passes", () => {
 test("a weakened assertion carries its before and after for the panel", () => {
   const pr = { ...goodPr, diff: diff("src/price.js", ["return p"], ["return p * 0.9"]) + diff("test/price.test.js", ["expect(f(10)).toBe(10)"], ["expect(f(10)).toBeDefined()"]) };
   const [ev] = verdict([pr]).problems.find((p) => p.kind === "tampering").evidence;
-  assert.deepEqual(ev, { file: "test/price.test.js", line: 1, kind: "weakened", says: "replaces an exact assertion with a weaker one", before: "expect(f(10)).toBe(10)", after: "expect(f(10)).toBeDefined()" });
+  assert.deepEqual(ev, { file: "test/price.test.js", line: 1, kind: "weakened", says: "replaces an exact assertion with a weaker one", why: "The old line checked one exact value. The new one passes for almost any value, so a wrong result would still go green.", before: "expect(f(10)).toBe(10)", after: "expect(f(10)).toBeDefined()" });
 });
