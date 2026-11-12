@@ -24,13 +24,17 @@ When the work item reaches Done, Proof of Done leaves an **audit receipt** comme
 
 Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
 
+When a work item is blocked, **Create a task to fix this** turns the block into the next piece of work: a sub-task (or a linked Task) with the file, the line, the check before and after, and the pull request link written in. Pressing it again for the same commits opens the same task instead of a duplicate.
+
+Each project gets a **Proof of Done** page (in the project's tabs) for team leads: how many work items are ready, blocked now, caught with tests changed to pass, or let through by an override, the latest catches, and tables with the reason for each block and each override (who, why, when). It searches as the person viewing it, so nobody sees a work item Jira would hide from them. The settings page shows the same counts for every project over the last 30 days.
+
 The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
 
 ## When a block is wrong
 
 A project admin or a Jira admin can press **Wrong block? Override** on the work item and give a reason. Proof of Done checks that permission, posts the reason with the admin's name on the work item, and lets that work item through. The override covers only the commits that were checked: a new commit to any linked pull request makes the check run again.
 
-## Try it in two minutes
+## Try it in a few minutes
 
 1. [Install Proof of Done for Jira](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira) on your site (choose your site, then **Get app**).
 2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). No settings needed: a DEMO project reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
@@ -110,7 +114,7 @@ Every block names the file and line, so a person can always see why.
 ## Permissions
 
 - `read:jira-work`: read the work item, its labels and the last check result.
-- `write:jira-work`: save the check result on the work item and post the audit receipt and override comments.
+- `write:jira-work`: save the check result on the work item, post the audit receipt and override comments, and create the fix task when someone presses Create a task to fix this.
 - `read:jira-user`: check whether the person pressing Override is a project or Jira admin.
 - `manage:jira-configuration`: add the validator and condition to a workflow, only when an admin presses Apply on the settings page.
 - `storage:app`: keep the settings and the encrypted tokens.
@@ -119,7 +123,7 @@ Every block names the file and line, so a person can always see why.
 ## Privacy
 
 - Proof of Done stores its settings: the GitHub or Bitbucket repository for each Jira project, an optional label for work that needs no code, and optional GitHub and Bitbucket tokens, which are kept encrypted in Forge storage.
-- When a work item is checked, it sends the work item key and the repository name to the GitHub or Bitbucket API, and reads pull request titles, branch names, changed files, diffs, commits and CI results. Nothing from GitHub or Bitbucket is stored, except the last check result (passed or not, and the problems found), which is saved on the work item so the Done condition can read it.
+- When a work item is checked, it sends the work item key and the repository name to the GitHub or Bitbucket API, and reads pull request titles, branch names, changed files, diffs, commits and CI results. Nothing from GitHub or Bitbucket is stored, except the last check result (passed or not, the problems found, and the file and line of each caught test change), which is saved on the work item so the Done condition and the project page can read it.
 - It stores no personal data and sends nothing to any other service.
 
 ## Support
