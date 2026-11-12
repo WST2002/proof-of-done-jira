@@ -86,6 +86,39 @@ export async function checkDone(payload) {
 }
 
 // @forge/resolver is CommonJS; in an ES module its class arrives as .default.
+const keyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();
+
+// Rovo / MCP: every change that makes the tests prove less, as before → after.
+export async function getTestEvidence(payload) {
+  const key = keyOf(payload);
+  if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const v = await check(key);
+  const evidence = (v.problems ?? []).flatMap((p) => (p.evidence ?? []).map((e) => ({ pr: p.pr, ...e })));
+  return { issueKey: key, done: v.done, summary: evidence.length ? `${evidence.length} change(s) make the tests prove less.` : v.message, evidence, headsUp: (v.warnings ?? []).map((w) => w.text) };
+}
+
+// Rovo / MCP: commit by commit, and where CI turned green after the tests were changed.
+export async function getTestTimeline(payload) {
+  const key = keyOf(payload);
+  if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const { config, token, bitbucketToken } = await settings();
+  const repo = repoFor(config, key);
+  if (!repo) return { issueKey: key, message: "Proof of Done is not set up for this project yet." };
+  const prs = repo.startsWith("bitbucket:")
+    ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
+    : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
+  if (!prs.length) return { issueKey: key, message: "No pull request mentions this work item yet." };
+  const timelines = [];
+  for (const pr of prs) {
+    const commits = repo.startsWith("bitbucket:")
+      ? await bitbucketCommitHistory({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), number: pr.number })
+      : await githubCommitHistory({ fetch: api.fetch, token, repo, number: pr.number });
+    const t = buildTimeline(commits);
+    timelines.push({ pr: pr.number, url: pr.url, greenAfterTestChange: t.greenAfterTampering, commits: t.entries.map((e) => ({ commit: e.short, title: e.title, ci: e.ci, testChanges: e.findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${f.says}`), note: e.note })) });
+  }
+  return { issueKey: key, timelines };
+}
+
 const Resolver = resolverModule.default ?? resolverModule;
 const resolver = new Resolver();
 
