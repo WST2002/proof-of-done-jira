@@ -24,6 +24,22 @@ Every work item also gets a **Proof of Done** box that shows the same check befo
 
 The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
 
+## Try it in two minutes
+
+1. Install Proof of Done for Jira on your site.
+2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). No settings needed: a DEMO project reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
+3. Jira settings → Apps → Proof of Done → **Turn it on for a project** → DEMO → **Apply**.
+4. Move each work item to Done:
+
+| Work item | Pull request | What happens |
+|---|---|---|
+| DEMO-1 | adds a discount and a test for the exact new value | moves to Done and gets an audit receipt |
+| DEMO-2 | changes rounding and loosens the test to `assert.ok` | blocked: an exact assertion was weakened, with file and line |
+| DEMO-3 | changes free shipping and skips its test | blocked: a test was skipped |
+| DEMO-4 | first commit fails CI, second loosens the test and CI goes green | blocked; **Show test timeline** points at the commit where CI turned green |
+
+Every pull request in the demo repository is merged and its CI is green. Only one of them is really done.
+
 ## Ask it from an AI agent (MCP and Rovo)
 
 Three read-only tools are available to Rovo agents and to external MCP clients such as Claude Code:

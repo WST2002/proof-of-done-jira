@@ -29,10 +29,14 @@ export function formatRepos(config) {
   return [config?.defaultRepo, ...Object.entries(config?.projects ?? {}).map(([k, v]) => `${k}=${v}`)].filter(Boolean).join("\n");
 }
 
+// A Jira project with the key DEMO works with no settings at all: it reads the public demo repository,
+// whose pull requests DEMO-1 to DEMO-4 show each kind of result. An admin can still point DEMO elsewhere.
+export const DEMO_REPO = "WST2002/proof-of-done-demo";
+
 /** The repository for a work item key like SHOP-12. */
 export function repoFor(config, issueKey) {
   const project = String(issueKey).split("-")[0].toUpperCase();
-  return config?.projects?.[project] || config?.defaultRepo || "";
+  return config?.projects?.[project] || (project === "DEMO" ? DEMO_REPO : "") || config?.defaultRepo || "";
 }
 
 // Work that needs no code (design, research, a meeting) carries this label and skips the check.

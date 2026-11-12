@@ -68,3 +68,10 @@ test("settings can only be changed from the admin page", () => {
   assert.match(adminOnly({ moduleKey: "proof-of-done-panel" }), /only from the Proof of Done settings page/);
   assert.match(adminOnly({}), /only from the Proof of Done settings page/);
 });
+
+test("a project with the key DEMO uses the public demo repository unless an admin set another one", () => {
+  assert.equal(repoFor({ defaultRepo: "acme/shop", projects: {} }, "DEMO-2"), "WST2002/proof-of-done-demo");
+  assert.equal(repoFor({}, "DEMO-1"), "WST2002/proof-of-done-demo");
+  assert.equal(repoFor({ defaultRepo: "acme/shop", projects: { DEMO: "acme/demo" } }, "DEMO-1"), "acme/demo");
+  assert.equal(repoFor({ defaultRepo: "acme/shop", projects: {} }, "SHOP-1"), "acme/shop");
+});
