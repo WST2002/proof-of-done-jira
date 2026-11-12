@@ -32,11 +32,15 @@ Three read-only tools are available to Rovo agents and to external MCP clients s
 - `get-test-evidence`: every change that makes the tests prove less, with file, line, and the assertion before and after.
 - `get-test-timeline`: each commit of the pull request, its CI result, and the commit where CI turned green after the tests were changed.
 
-To use them from an external client, a site admin turns on external MCP access for Proof of Done (Atlassian Administration → Apps → Connected apps → Proof of Done → enable the tools), then the client connects to `https://mcp.atlassian.com/forge/487a9b05-d2bc-4e8f-98ce-2c533e95676f`, for example:
+Each tool answers only for work items the signed-in person can see in Jira; an unknown key gets a plain "not found" answer.
+
+To use them from an external client, a site admin turns on external MCP access for Proof of Done (Atlassian Administration → your site → Connected apps → Proof of Done for Jira → Tools → **Enable tools**), then the client connects to `https://mcp.atlassian.com/forge/487a9b05-d2bc-4e8f-98ce-2c533e95676f`, for example:
 
 ```bash
 claude mcp add --transport http proof-of-done https://mcp.atlassian.com/forge/487a9b05-d2bc-4e8f-98ce-2c533e95676f
 ```
+
+Or try it from this repository: `npm run mcp-check -- POD-13 POD-6`. It prints a sign-in link, and after you press **Accept** it lists the tools and calls each one for the keys you gave.
 
 ## Catch it before merge (Bitbucket)
 
