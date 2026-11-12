@@ -128,3 +128,14 @@ test("a weakened assertion carries its before and after for the panel", () => {
   const [ev] = verdict([pr]).problems.find((p) => p.kind === "tampering").evidence;
   assert.deepEqual(ev, { file: "test/price.test.js", line: 1, kind: "weakened", says: "replaces an exact assertion with a weaker one", why: "The old line checked one exact value. The new one passes for almost any value, so a wrong result would still go green.", before: "expect(f(10)).toBe(10)", after: "expect(f(10)).toBeDefined()" });
 });
+
+test("a check with an unknown result does not count as passed", () => {
+  const v = verdict([{ ...goodPr, checks: [{ name: "test", status: "completed", conclusion: "stale" }] }]);
+  assert.equal(v.done, false);
+  assert.deepEqual(kinds(v), ["check-failed"]);
+});
+
+test("a style-only change needs no test", () => {
+  const v = verdict([{ ...goodPr, files: ["src/cart.css", "src/theme.scss"], diff: diff("src/cart.css", ["  color: #333;"], ["  color: #111;"]) }]);
+  assert.equal(v.done, true);
+});
