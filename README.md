@@ -12,7 +12,7 @@ Proof of Done is a Forge app. When someone moves a work item to Done, it looks u
 
 An error caught and dropped without handling is shown as a heads-up, not a block, because it is sometimes deliberate.
 
-**How it differs:** checklist apps check that boxes are ticked, and delivery checks look at merges and CI. None of them check whether the tests themselves were weakened to get green. Proof of Done reads the test diff and does.
+**How it differs:** checklist apps check that boxes are ticked, and delivery checks look at merges and CI. Proof of Done puts test integrity into Jira's Done decision: it reads the test diff and blocks Done when the tests were weakened to get green.
 
 If something is missing, Jira shows exactly what, with file and line, the line before and after, and one sentence on why that change is suspicious, so the fix is obvious.
 
@@ -44,7 +44,7 @@ A project admin can press **Wrong block? Override** on the work item and give a 
 | DEMO-3 | changes free shipping and skips its test | blocked: a test was skipped |
 | DEMO-4 | first commit fails CI, second loosens the test and CI goes green | blocked; **Show test timeline** points at the commit where CI turned green |
 
-Every pull request in the demo repository is merged and its CI is green. Only one of them is really done.
+The four pull requests are HONEST, WEAKENED ASSERTION, SKIPPED TEST and GREEN AFTER WEAKENING. All four are merged with green CI; only the honest one is really done.
 
 ## Ask it from an AI agent (MCP and Rovo)
 
