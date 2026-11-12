@@ -1,6 +1,6 @@
 // Work item panel: the same check the Done transition runs, shown before anyone tries to move the work item.
 import React, { useEffect, useState } from "react";
-import ForgeReconciler, { Box, Button, Code, Inline, Link, LinkButton, Lozenge, SectionMessage, Spinner, Stack, Strong, Text, useProductContext } from "@forge/react";
+import ForgeReconciler, { Box, Button, Code, Inline, Link, LinkButton, Lozenge, SectionMessage, Spinner, Stack, Strong, Text, Textfield, useProductContext } from "@forge/react";
 import { invoke } from "@forge/bridge";
 
 const CHECK_STATE = (c) => (c.conclusion === "success" ? "success" : c.status !== "completed" ? "inprogress" : c.conclusion === "skipped" || c.conclusion === "neutral" ? "default" : "removed");
@@ -88,6 +88,41 @@ function Timeline({ number }) {
   );
 }
 
+// For a wrong block: a project admin lets the work item through with a reason. The app checks the permission,
+// keeps the reason on the work item and drops the override as soon as a pull request gets a new commit.
+function Override({ onDone }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!open) return <Button appearance="subtle" onClick={() => setOpen(true)}>Wrong block? Override (project admins)</Button>;
+  const send = async () => {
+    setBusy(true);
+    try {
+      const r = await invoke("override", { reason });
+      if (r.ok) onDone(r.result);
+      else setNote(r.message);
+    } catch (e) {
+      setNote(`The override did not go through (${e.message}).`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Stack space="space.075">
+      <Text>Why is this work done anyway? The reason is posted on the work item with your name.</Text>
+      <Textfield value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For example: rounding change approved by finance, see FIN-12" />
+      <Inline space="space.100">
+        <Button appearance="warning" onClick={send} isDisabled={busy}>
+          {busy ? "Saving…" : "Override with this reason"}
+        </Button>
+        <Button appearance="subtle" onClick={() => setOpen(false)}>Cancel</Button>
+      </Inline>
+      {note ? <Text>{note}</Text> : null}
+    </Stack>
+  );
+}
+
 function Panel() {
   const context = useProductContext();
   const key = context?.extension?.issue?.key ?? "this work item";
@@ -134,6 +169,14 @@ function Panel() {
       ) : null}
 
       {tampering?.evidence?.length ? <Evidence items={tampering.evidence} url={tampering.url} /> : null}
+
+      {result.overridden ? (
+        <SectionMessage appearance="warning" title="Done by a recorded override">
+          <Text>{`Reason: ${result.overridden.reason}`}</Text>
+        </SectionMessage>
+      ) : null}
+
+      {!result.done && !result.failed && result.prs?.length ? <Override onDone={setResult} /> : null}
 
       {result.warnings?.length ? (
         <SectionMessage appearance="information" title="Heads-up (not blocking)">
