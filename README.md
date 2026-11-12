@@ -66,7 +66,7 @@ Or try it from this repository: `npm run mcp-check -- POD-13 POD-6`. It prints a
 
 ## Catch it before merge (Bitbucket)
 
-`bitbucket-merge-check/` is a second, small Forge app for Bitbucket Cloud. It adds a **custom merge check** that runs the same test-tampering rules on every push to a pull request, so the problem shows up on the pull request itself, before anyone merges. On Bitbucket Premium the check can be made required to block the merge.
+`bitbucket-merge-check/` is a second, small Forge app for Bitbucket Cloud. It adds a **custom merge check** that runs the same test-tampering rules on every push to a pull request, so the problem shows up on the pull request itself, before anyone merges. On Bitbucket Premium the check can be made required to block the merge; on Bitbucket Free it shows on the pull request as a warning and the merge button stays available.
 
 To use it: install it on your workspace, enable **Workspace settings → Custom merge checks**, then add **Proof of Done** under **Repository settings → Custom merge checks**.
 
@@ -103,9 +103,18 @@ npm test
 | Honest changes wrongly flagged | 0 of 47 |
 | Precision / recall | 100% / 100% |
 
-The rules were also run over all 100 merged pull requests of three real repositories (including this one): none was blocked.
+The rules were also run over all 100 merged pull requests of three real repositories, [claude-code-skills](https://github.com/WST2002/claude-code-skills), [which-ai-to-use](https://github.com/WST2002/which-ai-to-use) and this one: none was blocked.
 
 Every block names the file and line, so a person can always see why.
+
+## Permissions
+
+- `read:jira-work`: read the work item, its labels and the last check result.
+- `write:jira-work`: save the check result on the work item and post the audit receipt and override comments.
+- `read:jira-user`: check whether the person pressing Override is a project or Jira admin.
+- `manage:jira-configuration`: add the validator and condition to a workflow, only when an admin presses Apply on the settings page.
+- `storage:app`: keep the settings and the encrypted tokens.
+- Outside Jira it talks only to `api.github.com` and `api.bitbucket.org`, to read pull requests and CI results.
 
 ## Privacy
 
