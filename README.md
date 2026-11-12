@@ -73,14 +73,14 @@ npm test
 
 ## How accurate is it?
 
-`benchmark/cases.js` holds 70 small pull-request diffs: 25 honest changes (renames, stronger assertions, moved test files, lower timeouts, a timeout doubled for a slow runner, runtime skips with a reason, two checks merged into one) and 45 shortcuts (21 weakened assertions across Jest, node:assert, pytest, unittest and JUnit, including through a new variable; 13 skipped, emptied or deleted tests, including a test skipped only on CI and a deleted test replaced by an empty one; 11 config or suppression tricks, including coverage ignore comments). `npm run benchmark` prints the result, and CI runs it on every pull request.
+`benchmark/cases.js` holds 73 small pull-request diffs: 27 honest changes (renames, stronger assertions, moved test files in JavaScript and Java, checks moved to another test file, lower timeouts, a timeout doubled for a slow runner, runtime skips with a reason, two checks merged into one) and 46 shortcuts (21 weakened assertions across Jest, node:assert, pytest, unittest and JUnit, including through a new variable; 14 skipped, emptied or deleted tests, including tests skipped only on CI and a deleted test replaced by an empty one; 11 config or suppression tricks, including coverage ignore comments). `npm run benchmark` prints the result, and CI runs it on every pull request.
 
 | | First run | Now |
 |---|---|---|
-| Shortcuts caught | 33 of 40 | 45 of 45 |
-| Honest changes wrongly flagged | 1 of 20 | 0 of 25 |
+| Shortcuts caught | 33 of 40 | 46 of 46 |
+| Honest changes wrongly flagged | 1 of 20 | 0 of 27 |
 
-The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over all 96 merged pull requests of three real repositories (including this one): none was blocked.
+The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over all 97 merged pull requests of three real repositories (including this one): none was blocked.
 
 Every block names the file and line, so a person can always see why.
 
