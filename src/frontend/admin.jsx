@@ -114,7 +114,7 @@ function Admin() {
 
       <Stack space="space.100">
         <Label labelFor="repos">Repositories</Label>
-        <TextArea id="repos" value={repos} onChange={(e) => setRepos(e.target.value)} placeholder={"acme/shop\nPAY=acme/payments"} />
+        <TextArea id="repos" minimumRows={4} value={repos} onChange={(e) => setRepos(e.target.value)} placeholder={"acme/shop\nPAY=acme/payments"} />
         <HelperMessage>One per line. GitHub: owner/name. Bitbucket Cloud: bitbucket:workspace/name. A line on its own is used for every project; KEY=repository sets it for one Jira project.</HelperMessage>
         {problems.filter((p) => !p.startsWith("The label")).map((p, i) => (
           <ErrorMessage key={i}>{p}</ErrorMessage>
