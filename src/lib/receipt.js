@@ -13,7 +13,7 @@ const when = (d) => d.toLocaleString("en-GB", { day: "numeric", month: "short", 
 
 /** Atlassian Document Format comment for a passed check `v` (from check()). */
 export function receipt(v, at = new Date()) {
-  const content = [para(bold("✅ Proof of Done receipt"), txt(` · moved to Done on ${when(at)}`))];
+  const content = [para(bold("✅ Proof of Done audit receipt"), txt(` · moved to Done on ${when(at)}`))];
   if (v.skipped) {
     content.push(para(txt(v.message)));
   } else {
