@@ -32,7 +32,7 @@ modules:
       resolver:
         function: resolver
       render: native
-      title: Proof of Done
+      title: Proof of Done dashboard
       icon: https://raw.githubusercontent.com/WST2002/proof-of-done-jira/main/icon.svg
   jira:adminPage:
     - key: proof-of-done-admin
@@ -40,7 +40,7 @@ modules:
       resolver:
         function: resolver
       render: native
-      title: Proof of Done
+      title: Proof of Done settings
   jira:workflowValidator:
     - key: proof-of-done-validator
       name: Proof of Done
