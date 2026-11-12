@@ -9,12 +9,16 @@ import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt, afterDoneNote, overrideNote } from "./lib/receipt.js";
 import { overrideFor, checkReason } from "./lib/override.js";
+import { checkRecord } from "./lib/record.js";
+import { summarize, byProject } from "./lib/dashboard.js";
+import { fixTask, pickIssueType } from "./lib/fixtask.js";
 import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
 const BB_TOKEN = "bitbucket-token";
 const OVERRIDE = "proof-of-done-override";
+const FIX = "proof-of-done-fix";
 
 async function settings() {
   const saved = (await kvs.get(CONFIG)) ?? {};
@@ -25,17 +29,26 @@ async function settings() {
   return { config, token, bitbucketToken, skipLabel };
 }
 
+// A Jira REST call as the app or as the person using the page; throws Jira's own message on failure.
+async function jiraAs(as, path, init) {
+  const res = await api[as]().requestJira(path, { headers: { Accept: "application/json", "Content-Type": "application/json" }, ...init });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.errorMessages?.[0] ?? Object.values(body.errors ?? {})[0] ?? `Jira ${res.status}`);
+  return body;
+}
+
 async function labelsOf(key) {
   const res = await api.asApp().requestJira(route`/rest/api/3/issue/${key}?fields=labels`, { headers: { Accept: "application/json" } });
   return res.ok ? (await res.json()).fields?.labels ?? [] : [];
 }
 
-// The result is saved on the work item, so a workflow condition can hide Done while the last check failed.
+// The result is saved on the work item, so a workflow condition can hide Done while the last check failed,
+// and the project dashboard can list every block, catch and override.
 async function remember(key, v) {
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ passed: v.done, problems: (v.problems ?? []).length, checkedAt: new Date().toISOString() }),
+    body: JSON.stringify(checkRecord(v)),
   }).catch(() => {});
   return v;
 }
@@ -182,6 +195,65 @@ resolver.define("override", async ({ payload, context }) => {
   return { ok: true, result: await check(key) };
 });
 
+// Turns a block into the next piece of work: a task (a sub-task when the project has one) with the evidence in it.
+// Created as the person who pressed the button, so Jira's own permissions apply; one task per blocked state.
+resolver.define("fixTask", async ({ context }) => {
+  const key = context.extension.issue.key;
+  const v = await evaluate(key);
+  if (v.done) return { ok: false, message: "Nothing to fix: the check passes." };
+  if (!v.prs.length) return { ok: false, message: "No pull request is linked yet, so there is nothing to fix in code." };
+  const shas = v.prs.map((p) => p.sha).join(",");
+  const prev = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${FIX}`, { headers: { Accept: "application/json" } });
+  const last = prev.ok ? (await prev.json()).value : null;
+  if (last?.shas === shas && last.key) {
+    const still = await api.asUser().requestJira(route`/rest/api/3/issue/${last.key}?fields=summary`, { headers: { Accept: "application/json" } });
+    if (still.ok) return { ok: true, key: last.key, existing: true };
+  }
+  try {
+    const me = await jiraAs("asUser", route`/rest/api/3/issue/${key}?fields=issuetype,project`);
+    const project = me.fields.project.key;
+    const meta = await jiraAs("asUser", route`/rest/api/3/issue/createmeta/${project}/issuetypes?maxResults=50`);
+    const type = pickIssueType(meta.issueTypes ?? meta.values ?? [], { parentIsSubtask: Boolean(me.fields.issuetype?.subtask) });
+    if (!type) return { ok: false, message: `Project ${project} has no work type a task can be created with.` };
+    const { summary, description } = fixTask(key, v);
+    const fields = { project: { key: project }, issuetype: { id: type.id }, summary, description, ...(type.subtask ? { parent: { key } } : {}) };
+    const created = await jiraAs("asUser", route`/rest/api/3/issue`, { method: "POST", body: JSON.stringify({ fields }) });
+    // A Task (not a sub-task) is linked as blocking the work item, so both show the connection.
+    if (!type.subtask) await jiraAs("asUser", route`/rest/api/3/issueLink`, { method: "POST", body: JSON.stringify({ type: { name: "Blocks" }, inwardIssue: { key }, outwardIssue: { key: created.key } }) }).catch(() => {});
+    await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${FIX}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: created.key, shas }) });
+    return { ok: true, key: created.key, subtask: type.subtask };
+  } catch (e) {
+    return { ok: false, message: `The task was not created: ${e.message}` };
+  }
+});
+
+// The project dashboard and the settings page read the saved check of the most recently updated work items.
+// The search runs as the viewer, so nobody sees a work item Jira would hide from them.
+const PROPERTIES = ["proof-of-done", OVERRIDE];
+async function recentIssues(as, jql) {
+  const res = await jiraAs(as, route`/rest/api/3/search/jql`, { method: "POST", body: JSON.stringify({ jql, maxResults: 100, fields: ["summary", "status"], properties: PROPERTIES }) });
+  return (res.issues ?? []).map((i) => ({
+    key: i.key,
+    summary: i.fields?.summary ?? "",
+    status: i.fields?.status?.name ?? "",
+    statusCategory: i.fields?.status?.statusCategory?.key ?? "",
+    record: i.properties?.["proof-of-done"] ?? null,
+    override: i.properties?.[OVERRIDE] ?? null,
+  }));
+}
+
+resolver.define("dashboard", async ({ context }) => {
+  const project = context.extension?.project?.key;
+  if (!project) return { ok: false, message: "Open this page from a Jira project." };
+  try {
+    const issues = await recentIssues("asUser", `project = "${project}" ORDER BY updated DESC`);
+    const { config } = await settings();
+    return { ok: true, project, repo: repoFor(config, `${project}-1`), shown: issues.length, ...summarize(issues) };
+  } catch (e) {
+    return { ok: false, message: `Could not read the work items: ${e.message}` };
+  }
+});
+
 // Commit by commit: what each push did to the tests, and where CI turned green. Loaded on request (more API calls).
 resolver.define("timeline", async ({ payload, context }) => {
   const { config, token, bitbucketToken } = await settings();
@@ -202,6 +274,14 @@ resolver.define("timeline", async ({ payload, context }) => {
   }
 });
 
+resolver.define("overview", admin(async () => {
+  try {
+    return { ok: true, projects: byProject(await recentIssues("asApp", "updated >= -30d ORDER BY updated DESC")) };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
+}));
+
 resolver.define("getSettings", admin(async () => {
   const { config, skipLabel } = await settings();
   return { repos: formatRepos(config), skipLabel, hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
@@ -221,12 +301,7 @@ resolver.define("saveSettings", admin(async ({ payload }) => {
 }));
 
 // --- guided setup: preview, then apply, the validator and condition on a project's transitions into Done ---------
-const jira = async (path, init) => {
-  const res = await api.asApp().requestJira(path, { headers: { Accept: "application/json", "Content-Type": "application/json" }, ...init });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.errorMessages?.[0] ?? `Jira ${res.status}`);
-  return body;
-};
+const jira = (path, init) => jiraAs("asApp", path, init);
 
 async function projectPlans(projectKey) {
   const project = await jira(route`/rest/api/3/project/${projectKey}`);

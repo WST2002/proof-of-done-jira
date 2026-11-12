@@ -26,6 +26,14 @@ modules:
       title: Proof of Done
       label: Proof of Done
       icon: https://raw.githubusercontent.com/WST2002/proof-of-done-jira/main/icon.svg
+  jira:projectPage:
+    - key: proof-of-done-dashboard
+      resource: dashboard
+      resolver:
+        function: resolver
+      render: native
+      title: Proof of Done
+      icon: https://raw.githubusercontent.com/WST2002/proof-of-done-jira/main/icon.svg
   jira:adminPage:
     - key: proof-of-done-admin
       resource: admin
@@ -120,6 +128,8 @@ resources:
     path: src/frontend/panel.jsx
   - key: admin
     path: src/frontend/admin.jsx
+  - key: dashboard
+    path: src/frontend/dashboard.jsx
 app:
   runtime:
     name: nodejs22.x

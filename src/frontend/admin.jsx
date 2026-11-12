@@ -71,6 +71,32 @@ function Setup() {
   );
 }
 
+// At a glance: what Proof of Done did in each project over the last 30 days. Details are on each project's Proof of Done page.
+function Overview() {
+  const [o, setO] = useState(null);
+  useEffect(() => {
+    invoke("overview").then(setO).catch((e) => setO({ ok: false, message: e.message }));
+  }, []);
+  if (!o) return <Spinner label="Counting the checks" />;
+  if (!o.ok) return null;
+  return (
+    <Stack space="space.100">
+      <Strong>At a glance (last 30 days)</Strong>
+      {o.projects.length ? (
+        o.projects.map((p) => (
+          <Text key={p.project}>
+            <Strong>{p.project}</Strong>
+            {`: ${p.checked} checked · ${p.ready} ready · ${p.blocked} blocked now · ${p.caught} with tests changed to pass · ${p.overridden} overridden`}
+          </Text>
+        ))
+      ) : (
+        <Text>No work item was checked yet. Turn it on for a project below, then open a work item or move it to Done.</Text>
+      )}
+      <HelperMessage>Each project's sidebar has a Proof of Done page with every block, catch and override.</HelperMessage>
+    </Stack>
+  );
+}
+
 function Admin() {
   const [repos, setRepos] = useState(null);
   const [token, setToken] = useState("");
@@ -155,6 +181,8 @@ function Admin() {
       {saved ? <SectionMessage appearance="success" title="Saved" /> : null}
 
       <Setup />
+
+      <Overview />
 
       <SectionMessage appearance="information" title="Linking pull requests">
         <Text>
