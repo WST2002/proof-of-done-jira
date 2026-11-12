@@ -11,7 +11,7 @@ test("a receipt lists each merged PR, its checks and the honesty result", () => 
   }, new Date("2026-11-11T17:00:00Z"));
   assert.equal(doc.type, "doc");
   const t = text(doc);
-  assert.match(t, /Proof of Done receipt/);
+  assert.match(t, /Proof of Done audit receipt/);
   assert.match(t, /PR #12/);
   assert.match(t, /https:\/\/github.com\/acme\/shop\/pull\/12/);
   assert.match(t, /test: passed/);
