@@ -51,3 +51,6 @@ export function checkSkipLabel(label) {
 
 // The work item key a Rovo or MCP caller asked about, however they typed it.
 export const issueKeyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();
+
+// Which service a configured repository lives on, for messages people read.
+export const hostOf = (repo) => (repo.startsWith("bitbucket:") ? "Bitbucket" : "GitHub");

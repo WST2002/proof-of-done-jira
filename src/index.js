@@ -8,7 +8,7 @@ import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt } from "./lib/receipt.js";
-import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf } from "./lib/config.js";
+import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
@@ -47,14 +47,14 @@ async function evaluate(key) {
   const skipped = skipReason(await labelsOf(key), skipLabel);
   if (skipped) return { done: true, skipped: true, repo: "", prs: [], problems: [], message: skipped };
   const repo = repoFor(config, key);
-  if (!repo) return { done: false, repo, prs: [], problems: [], message: "Proof of Done is not set up for this project yet: a Jira admin can add the GitHub repository under Apps → Proof of Done." };
+  if (!repo) return { done: false, repo, prs: [], problems: [], message: "Proof of Done is not set up for this project yet: a Jira admin can add the GitHub or Bitbucket repository under Apps → Proof of Done." };
   try {
     const prs = repo.startsWith("bitbucket:")
       ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
       : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
     return { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai, sha }) => ({ number, url, merged, checks, files: files.length, ai, sha })) };
   } catch (e) {
-    return { done: false, repo, prs: [], problems: [], message: `Could not check GitHub, so Done is blocked for now: ${e.message}` };
+    return { done: false, repo, prs: [], problems: [], message: `Could not check ${hostOf(repo)}, so Done is blocked for now: ${e.message}` };
   }
 }
 
