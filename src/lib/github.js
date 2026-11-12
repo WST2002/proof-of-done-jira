@@ -1,8 +1,10 @@
 // Reads the pull requests that mention a Jira key from GitHub: merged state, changed files, diff, check runs.
 import { detectAI } from "./ai.js";
+import { isTestFile } from "./tamper.js";
 // `fetch` is passed in: Forge's fetch inside the app, the global fetch in tests and the CLI.
 const API = "https://api.github.com";
-const MAX_PRS = 5;
+const MAX_PRS = 10;
+const MAX_FILES = 300;
 
 function client(fetch, token) {
   const headers = { Accept: "application/vnd.github+json", "User-Agent": "proof-of-done-jira", "X-GitHub-Api-Version": "2022-11-28" };
@@ -39,6 +41,14 @@ async function pages(get, path, max = 3) {
   return all;
 }
 
+// CI results for a commit: check runs (GitHub Actions and most apps), or the older commit statuses some CI services still use.
+async function checksOf(get, repo, sha) {
+  const runs = await pages(get, `/repos/${repo}/commits/${sha}/check-runs`, 1);
+  if (runs.length) return runs;
+  const combined = await get(`/repos/${repo}/commits/${sha}/status`);
+  return (combined.statuses ?? []).map((s) => ({ name: s.context, html_url: s.target_url, status: s.state === "pending" ? "in_progress" : "completed", conclusion: s.state === "success" ? "success" : s.state === "pending" ? null : "failure" }));
+}
+
 /** Pull requests in `repo` ("owner/name") whose title or branch mentions `key`. */
 export async function linkedPullRequests({ fetch, token, repo, key }) {
   const get = client(fetch, token);
@@ -49,13 +59,18 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
   // The list already carries title, branch, merge state and head commit; only older PRs found by search need a lookup.
   const known = new Map(recent.filter((p) => mentions(p.title, key) || mentions(p.head?.ref, key)).map((p) => [p.number, p]));
   const numbers = [...new Set([...known.keys(), ...(found.items ?? []).filter((i) => mentions(i.title, key)).map((i) => i.number)])];
+  // Never check only some of the linked work: past the limit, Done is blocked with the reason.
+  if (numbers.length > MAX_PRS) throw new Error(`${numbers.length} pull requests mention ${key}; Proof of Done reads up to ${MAX_PRS}. Split the work item, or rename old pull requests that no longer belong to it.`);
   const prs = [];
   for (const number of numbers) {
-    if (prs.length === MAX_PRS) break;
     const pr = known.get(number) ?? (await get(`/repos/${repo}/pulls/${number}`));
     if (!mentions(pr.title, key) && !mentions(pr.head?.ref, key)) continue;
     const files = await pages(get, `/repos/${repo}/pulls/${pr.number}/files`);
-    const checks = await pages(get, `/repos/${repo}/commits/${pr.head.sha}/check-runs`, 1);
+    if (files.length >= MAX_FILES) throw new Error(`PR #${pr.number} changes ${MAX_FILES} or more files, more than Proof of Done can read in full. Split it into smaller pull requests.`);
+    // GitHub leaves out the diff of very large files; a test file whose change cannot be read cannot be called honest.
+    const unreadable = files.find((f) => f.status !== "removed" && f.patch === undefined && isTestFile(f.filename) && f.changes > 0);
+    if (unreadable) throw new Error(`GitHub did not return the change to ${unreadable.filename} in PR #${pr.number} (too large), so its tests cannot be verified.`);
+    const checks = await checksOf(get, repo, pr.head.sha);
     const commits = await pages(get, `/repos/${repo}/pulls/${pr.number}/commits`, 1);
     prs.push({
       number: pr.number,
@@ -71,22 +86,23 @@ export async function linkedPullRequests({ fetch, token, repo, key }) {
   return prs;
 }
 
+// Only "success" is green: an unknown or new conclusion is never read as passed.
 const ciOf = (runs) => {
   const ran = runs.filter((c) => c.conclusion !== "skipped" && c.conclusion !== "neutral");
   if (!ran.length) return "none";
-  if (ran.some((c) => ["failure", "cancelled", "timed_out", "action_required", "startup_failure"].includes(c.conclusion))) return "failed";
+  if (ran.some((c) => c.status === "completed" && c.conclusion !== "success")) return "failed";
   if (ran.some((c) => c.status !== "completed")) return "running";
   return "passed";
 };
 
-/** The commits of a pull request, oldest first (last 10), each with its own diff and CI result, for the timeline. */
+/** The last 10 commits of a pull request, oldest first, each with its own diff and CI result, for the timeline. */
 export async function githubCommitHistory({ fetch, token, repo, number }) {
   const get = client(fetch, token);
   const commits = (await get(`/repos/${repo}/pulls/${number}/commits?per_page=100`)).slice(-10);
   const out = [];
   for (const c of commits) {
     const detail = await get(`/repos/${repo}/commits/${c.sha}`);
-    const runs = (await get(`/repos/${repo}/commits/${c.sha}/check-runs?per_page=50`)).check_runs ?? [];
+    const runs = await checksOf(get, repo, c.sha);
     out.push({
       sha: c.sha,
       message: c.commit?.message,

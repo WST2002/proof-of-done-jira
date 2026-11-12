@@ -21,7 +21,10 @@ export function detectAI(commits) {
   return null;
 }
 
-/** Whether the diff adds at least one exact assertion to a test file. */
+// A commented-out line is not a check, however it reads.
+const COMMENT = /^\s*(\/\/|#|\/\*|\*)/;
+
+/** Whether the diff adds at least one exact assertion, in code (not a comment), to a test file. */
 export function addsExactAssertion(diff) {
-  return parseDiff(diff).some((f) => isTestFile(f.path) && f.hunks.some((h) => h.added.some((a) => EXACT.test(a.text))));
+  return parseDiff(diff).some((f) => isTestFile(f.path) && f.hunks.some((h) => h.added.some((a) => !COMMENT.test(a.text) && EXACT.test(a.text))));
 }

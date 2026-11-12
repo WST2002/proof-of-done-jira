@@ -4,7 +4,7 @@ import { mentions } from "./github.js";
 import { detectAI } from "./ai.js";
 
 const API = "https://api.bitbucket.org/2.0";
-const MAX_PRS = 5;
+const MAX_PRS = 10;
 
 // Bitbucket build states → the GitHub-style status/conclusion verdict.js understands.
 const STATUS = {
@@ -50,11 +50,13 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
   const base = `/repositories/${repo}/pullrequests`;
   const recent = await all(get, `${base}?state=OPEN&state=MERGED&state=DECLINED&state=SUPERSEDED&sort=-updated_on&pagelen=50`, 2);
   const linked = recent.filter((p) => p.state !== "DECLINED" && p.state !== "SUPERSEDED" && (mentions(p.title, key) || mentions(p.source?.branch?.name, key)));
+  // Never check only some of the linked work: past the limit, Done is blocked with the reason.
+  if (linked.length > MAX_PRS) throw new Error(`${linked.length} pull requests mention ${key}; Proof of Done reads up to ${MAX_PRS}. Split the work item, or rename old pull requests that no longer belong to it.`);
   const prs = [];
-  for (const pr of linked.slice(0, MAX_PRS)) {
+  for (const pr of linked) {
     const files = await all(get, `${base}/${pr.id}/diffstat?pagelen=100`);
     const diff = await get(`${base}/${pr.id}/diff`, true);
-    const statuses = await all(get, `${base}/${pr.id}/statuses?pagelen=50`, 1);
+    const statuses = await all(get, `${base}/${pr.id}/statuses?pagelen=50`);
     const commits = await all(get, `${base}/${pr.id}/commits?pagelen=50`, 1);
     prs.push({
       number: pr.id,
@@ -63,7 +65,7 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
       sha: pr.source?.commit?.hash,
       files: files.map((f) => f.new?.path ?? f.old?.path).filter(Boolean),
       diff,
-      checks: statuses.map((s) => ({ name: s.name || s.key, url: s.url, ...(STATUS[s.state] ?? { status: "completed", conclusion: "neutral" }) })),
+      checks: statuses.map((s) => ({ name: s.name || s.key, url: s.url, ...(STATUS[s.state] ?? { status: "completed", conclusion: String(s.state).toLowerCase() }) })),
       ai: detectAI(commits.map((c) => ({ message: c.message, author: c.author?.user?.nickname ?? c.author?.raw }))),
     });
   }
@@ -72,19 +74,20 @@ export async function linkedBitbucketPullRequests({ fetch, token, repo, key }) {
 
 const BB_CI = (statuses) => {
   if (!statuses.length) return "none";
-  if (statuses.some((s) => s.state === "FAILED" || s.state === "STOPPED")) return "failed";
   if (statuses.some((s) => s.state === "INPROGRESS")) return "running";
+  // Only SUCCESSFUL is green: FAILED, STOPPED or any new state is not.
+  if (statuses.some((s) => s.state !== "SUCCESSFUL")) return "failed";
   return "passed";
 };
 
-/** The commits of a Bitbucket pull request, oldest first (last 10), each with its own diff and build result. */
+/** The last 10 commits of a Bitbucket pull request, oldest first, each with its own diff and build result. */
 export async function bitbucketCommitHistory({ fetch, token, repo, number }) {
   const get = client(fetch, token);
   const commits = (await all(get, `/repositories/${repo}/pullrequests/${number}/commits?pagelen=50`, 1)).reverse().slice(-10);
   const out = [];
   for (const c of commits) {
     const diff = await get(`/repositories/${repo}/diff/${c.hash}`, true);
-    const statuses = await all(get, `/repositories/${repo}/commit/${c.hash}/statuses?pagelen=50`, 1);
+    const statuses = await all(get, `/repositories/${repo}/commit/${c.hash}/statuses?pagelen=50`);
     out.push({ sha: c.hash, message: c.message, date: c.date, diff, ci: BB_CI(statuses) });
   }
   return out;

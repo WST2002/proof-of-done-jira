@@ -7,8 +7,8 @@ import { linkedBitbucketPullRequests, bitbucketCommitHistory } from "./lib/bitbu
 import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
-import { receipt } from "./lib/receipt.js";
-import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf } from "./lib/config.js";
+import { receipt, afterDoneNote } from "./lib/receipt.js";
+import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
@@ -70,11 +70,17 @@ export async function onIssueUpdated(event) {
   const toDone = event.issue.fields?.status?.statusCategory?.key === "done" || /^done$/i.test(moved?.toString ?? "");
   if (!key || !moved || !toDone) return;
   const v = await check(key);
-  if (!v.done) return;
+  // One receipt per checked state: a repeated event for the same commits does not post it twice.
+  const stamp = `receipt:${v.done}:${(v.prs ?? []).map((p) => p.sha).join(",")}`;
+  const seen = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done-receipt`, { headers: { Accept: "application/json" } });
+  if (seen.ok && (await seen.json()).value?.stamp === stamp) return;
+  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done-receipt`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stamp }) });
+  // If the work changed between the move and this check, say so on the work item instead of staying silent.
+  const body = v.done ? receipt(v) : afterDoneNote(v);
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ body: receipt(v) }),
+    body: JSON.stringify({ body }),
   });
 }
 
@@ -111,10 +117,18 @@ export async function getTestTimeline(payload) {
   const { config, token, bitbucketToken } = await settings();
   const repo = repoFor(config, key);
   if (!repo) return { issueKey: key, message: "Proof of Done is not set up for this project yet." };
+  try {
+    return { issueKey: key, ...(await timelinesFor(repo, key, token, bitbucketToken)) };
+  } catch (e) {
+    return { issueKey: key, available: false, message: `Could not read ${hostOf(repo)}: ${e.message}` };
+  }
+}
+
+async function timelinesFor(repo, key, token, bitbucketToken) {
   const prs = repo.startsWith("bitbucket:")
     ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
     : await linkedPullRequests({ fetch: api.fetch, token, repo, key });
-  if (!prs.length) return { issueKey: key, message: "No pull request mentions this work item yet." };
+  if (!prs.length) return { message: "No pull request mentions this work item yet." };
   const timelines = [];
   for (const pr of prs) {
     const commits = repo.startsWith("bitbucket:")
@@ -123,12 +137,18 @@ export async function getTestTimeline(payload) {
     const t = buildTimeline(commits);
     timelines.push({ pr: pr.number, url: pr.url, greenAfterTestChange: t.greenAfterTampering, commits: t.entries.map((e) => ({ commit: e.short, title: e.title, ci: e.ci, testChanges: e.findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${f.says}`), note: e.note })) });
   }
-  return { issueKey: key, timelines };
+  return { timelines };
 }
 
 // @forge/resolver is CommonJS; in an ES module its class arrives as .default.
 const Resolver = resolverModule.default ?? resolverModule;
 const resolver = new Resolver();
+
+// Settings and workflow changes: refused unless the call comes from the admin page.
+const admin = (fn) => async (req) => {
+  const refused = adminOnly(req.context);
+  return refused ? { ok: false, message: refused } : fn(req);
+};
 
 resolver.define("check", async ({ context }) => check(context.extension.issue.key));
 
@@ -146,12 +166,12 @@ resolver.define("timeline", async ({ payload, context }) => {
   }
 });
 
-resolver.define("getSettings", async () => {
+resolver.define("getSettings", admin(async () => {
   const { config, skipLabel } = await settings();
   return { repos: formatRepos(config), skipLabel, hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
-});
+}));
 
-resolver.define("saveSettings", async ({ payload }) => {
+resolver.define("saveSettings", admin(async ({ payload }) => {
   const { config, problems } = parseRepos(payload.repos);
   const labelProblem = checkSkipLabel(payload.skipLabel);
   if (labelProblem) problems.push(labelProblem);
@@ -162,7 +182,7 @@ resolver.define("saveSettings", async ({ payload }) => {
   if (payload.clearBitbucketToken) await kvs.deleteSecret(BB_TOKEN);
   else if (payload.bitbucketToken?.trim()) await kvs.setSecret(BB_TOKEN, payload.bitbucketToken.trim());
   return { ok: true, problems: [], hasToken: Boolean(await kvs.getSecret(TOKEN)), hasBitbucketToken: Boolean(await kvs.getSecret(BB_TOKEN)) };
-});
+}));
 
 // --- guided setup: preview, then apply, the validator and condition on a project's transitions into Done ---------
 const jira = async (path, init) => {
@@ -190,21 +210,21 @@ async function projectPlans(projectKey) {
   return { project: project.name, teamManaged: false, plans };
 }
 
-resolver.define("projects", async () => {
+resolver.define("projects", admin(async () => {
   const res = await jira(route`/rest/api/3/project/search?maxResults=50`);
   return (res.values ?? []).map((p) => ({ key: p.key, name: p.name, teamManaged: p.style === "next-gen" }));
-});
+}));
 
-resolver.define("previewSetup", async ({ payload }) => {
+resolver.define("previewSetup", admin(async ({ payload }) => {
   try {
     const { project, teamManaged, plans } = await projectPlans(payload.projectKey);
     return { ok: true, project, teamManaged, plans: plans.map(({ workflow, changes, alreadyDone }) => ({ workflow, changes, alreadyDone })) };
   } catch (e) {
     return { ok: false, message: e.message };
   }
-});
+}));
 
-resolver.define("applySetup", async ({ payload }) => {
+resolver.define("applySetup", admin(async ({ payload }) => {
   try {
     const { plans } = await projectPlans(payload.projectKey);
     for (const plan of plans.filter((p) => !p.alreadyDone)) await jira(route`/rest/api/3/workflows/update`, { method: "POST", body: JSON.stringify(plan.update) });
@@ -212,6 +232,6 @@ resolver.define("applySetup", async ({ payload }) => {
   } catch (e) {
     return { ok: false, message: e.message };
   }
-});
+}));
 
 export const handler = resolver.getDefinitions();

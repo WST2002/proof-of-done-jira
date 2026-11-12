@@ -13,7 +13,7 @@ const ALWAYS_PASSES = /expect\(\s*(true|1)\s*\)\.(toBe|toEqual)\(\s*(true|1)\s*\
 const WEAK = /\.(toBeTruthy|toBeDefined|toBeFalsy)\(\s*\)|\bassert\.ok\(|\bassert\(\s*[\w.]+\s*\)|\.not\.toBeNull\(\s*\)|\.not\.toBeUndefined\(\s*\)|toBeGreaterThanOrEqual\(\s*0\s*\)|\bassert\s+[^=!<>]+?(\s+is\s+not\s+None)?\s*$|\bself\.assert(True|IsNotNone)\(|\bassertNotNull\(|\bassertTrue\(.*!=\s*null\s*\)/;
 const STRONG = /\.(toBe|toEqual|toStrictEqual|toMatch|toContain|toHaveLength|toThrow|toHaveBeenCalledWith)\(\s*\S|\bassert\w*\s*\(?.*(==|!=|Equal|In\b)|\bassert\.(equal|deepEqual|strictEqual|deepStrictEqual|match|throws)\(/;
 const TEST_CASE = /^\s*(it|test|describe|xit|fit|xdescribe|fdescribe)(\.\w+)*\s*\(|^\s*(async\s+)?def\s+test_|^\s*func\s+Test\w*\(|@Test\b/;
-const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|#\s*noqa\b|#\s*type:\s*ignore|\/\/\s*nolint\b|@SuppressWarnings\b|#\s*pragma:\s*no cover/;
+const SUPPRESS = /@ts-(ignore|nocheck)\b|eslint-disable|\b(?:istanbul|c8|v8)\s+ignore\b|#\s*noqa\b|#\s*type:\s*ignore|\/\/\s*nolint\b|@SuppressWarnings\b|#\s*pragma:\s*no cover/;
 const THRESHOLD = /\b(branches|functions|lines|statements|fail_under|fail-under|cov-fail-under)["']?\s*[:=]?\s*(\d+(?:\.\d+)?)/;
 const NON_CODE = /\.(md|mdx|txt|rst|lock)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/;
 // Test runner config files: timeouts and retries set there hide slow or flaky tests just like in a test file.
@@ -30,6 +30,11 @@ const RETRY = /\bjest\.retryTimes\(\s*[1-9]|\bthis\.retries\(\s*[1-9]|@pytest\.m
 // An error caught and dropped: an empty catch, or one that only returns an empty value.
 const SWALLOW = /\bcatch\s*(\([^)]*\))?\s*\{\s*(return\s*(\[\s*\]|\{\s*\}|null|undefined|false|""|0)?\s*;?)?\s*\}|\.catch\(\s*(\(\s*\w*\s*\)|\w+)\s*=>\s*(\{\s*\}|null|undefined|\[\s*\])\s*\)|^\s*except\b[^:]*:\s*pass\s*$/;
 const PY_EXCEPT = /^\s*except\b[^:]*:\s*$/;
+// A skip call inside a test, and the CI environment check that makes it skip only where CI runs.
+const SKIP_CALL = /\b(?:t\.Skip(?:Now|f)?|t\.skip|this\.skip|pytest\.skip)\(/;
+const CI_ENV = /Getenv\(\s*"CI"|process\.env\.CI\b|process\.env\[["']CI["']\]|environ(?:\.get)?\W+["']CI["']/;
+// Any assertion, exact or not: used to see whether a test still checks anything.
+const ANY_ASSERT = /\bexpect\(|\bassert\w*[\s.(]|\bself\.assert\w*\(|\bassert[A-Z]\w*\(|\bt\.(?:Error|Fatal)f?\(/;
 
 export const isTestFile = (file) => TEST_FILE.some((re) => re.test(file));
 
@@ -75,11 +80,16 @@ function subject(text) {
   return call?.[1];
 }
 
-// A weak assertion is a weakening only when it replaces an exact assertion about the same thing in this hunk.
+// A weak assertion is a weakening only when it replaces an exact assertion about the same thing in this hunk,
+// directly or through a new variable (const actual = total(cart); expect(actual).toBeDefined()).
 // Returns the exact assertion it replaced, so the change can be shown as before → after.
-const replacedStrong = (text, removed) => {
+const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const replacedStrong = (text, removed, added = []) => {
   const what = subject(text);
-  return what ? removed.find((r) => STRONG.test(r.text) && r.text.includes(what)) : undefined;
+  if (!what) return undefined;
+  const assigned = new RegExp(`\\b(?:const|let|var)\\s+${escape(what)}\\s*=\\s*(.+?);?\\s*$`);
+  const alias = added.map((a) => assigned.exec(a.text)?.[1]?.trim()).find(Boolean);
+  return removed.find((r) => STRONG.test(r.text) && (r.text.includes(what) || (alias && r.text.includes(alias))));
 };
 
 const short = (text) => {
@@ -88,10 +98,13 @@ const short = (text) => {
 };
 
 const testCases = (lines) => lines.filter((l) => TEST_CASE.test(l.text)).length;
+// The name a test is declared with: test("adds", …) -> adds, def test_adds -> adds, func TestAdds -> Adds.
+const testName = (text) => /\(\s*(["'`])(.*?)\1/.exec(text)?.[2] ?? /def\s+test_(\w+)|func\s+Test(\w+)/.exec(text)?.slice(1).find(Boolean);
+// A deleted test file is a move when every test it declared appears again, by name, in a new test file.
 const movedTests = (gone, files) => {
-  const before = testCases(gone.hunks.flatMap((h) => h.removed));
-  const after = files.filter((f) => f.created && isTestFile(f.path)).reduce((n, f) => n + testCases(f.hunks.flatMap((h) => h.added)), 0);
-  return before > 0 && after >= before;
+  const before = gone.hunks.flatMap((h) => h.removed).filter((l) => TEST_CASE.test(l.text)).map((l) => testName(l.text));
+  const after = new Set(files.filter((f) => f.created && isTestFile(f.path)).flatMap((f) => f.hunks.flatMap((h) => h.added)).filter((l) => TEST_CASE.test(l.text)).map((l) => testName(l.text)));
+  return before.length > 0 && before.every((name) => name !== undefined && after.has(name));
 };
 
 /** Test-weakening changes in a diff: [{ file, line, kind, text }]. `ignore(file)` leaves a file out. */
@@ -108,6 +121,8 @@ export function findTampering(diff, ignore = () => false) {
     }
     let removedCases = 0;
     let addedCases = 0;
+    let removedExact = 0;
+    let addedChecks = 0;
     for (const { added, removed } of file.hunks) {
       for (const { line, text } of added) {
         const add = (kind, before) => findings.push({ file: file.path, line, kind, text: short(text), ...(before ? { before: short(before) } : {}) });
@@ -115,13 +130,14 @@ export function findTampering(diff, ignore = () => false) {
         if (SUPPRESS.test(code)) add("suppressed");
         else if (test && SKIP.test(code)) add("skipped", removed.find((r) => TEST_CASE.test(r.text))?.text);
         else if (test && ALWAYS_PASSES.test(code)) add("always-passes");
-        else if (test && WEAK.test(code) && replacedStrong(text, removed)) add("weakened", replacedStrong(text, removed).text);
+        else if (test && WEAK.test(code) && replacedStrong(text, removed, added)) add("weakened", replacedStrong(text, removed, added).text);
+        else if (test && SKIP_CALL.test(code) && added.some((a) => CI_ENV.test(a.text))) add("skipped");
         if (test || TEST_CONFIG.test(file.path)) {
           if (RETRY.test(code)) add("retry");
           for (const re of TIMEOUTS) {
             const now = re.exec(code)?.[1];
             const was = removed.map((r) => re.exec(withoutStrings(r.text))?.[1]).find(Boolean);
-            if (now && was && Number(now) >= 2 * Number(was)) { add("timeout", removed.find((r) => re.exec(withoutStrings(r.text)))?.text); break; }
+            if (now && was && Number(now) > 2 * Number(was)) { add("timeout", removed.find((r) => re.exec(withoutStrings(r.text)))?.text); break; }
           }
         } else if (SWALLOW.test(code) || (PY_EXCEPT.test(code) && /^\s*pass\s*$/.test(added[added.findIndex((a) => a.line === line) + 1]?.text ?? ""))) add("swallowed");
         const before = removed.map((r) => THRESHOLD.exec(r.text)).find((m) => m && m[1] === THRESHOLD.exec(text)?.[1]);
@@ -131,9 +147,13 @@ export function findTampering(diff, ignore = () => false) {
       if (test) {
         removedCases += removed.filter((r) => TEST_CASE.test(r.text)).length;
         addedCases += added.filter((a) => TEST_CASE.test(a.text)).length;
+        removedExact += removed.filter((r) => STRONG.test(withoutStrings(r.text))).length;
+        addedChecks += added.filter((a) => ANY_ASSERT.test(withoutStrings(a.text))).length;
       }
     }
     if (removedCases > addedCases) findings.push({ file: file.path, line: null, kind: "removed-tests", text: String(removedCases - addedCases) });
+    // Exact checks taken out and nothing put back: the tests still run but no longer check anything.
+    else if (removedExact > 0 && addedChecks === 0) findings.push({ file: file.path, line: null, kind: "removed-assertions", text: String(removedExact) });
   }
   return findings;
 }

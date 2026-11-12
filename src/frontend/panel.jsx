@@ -8,12 +8,13 @@ const at = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { hour: "2-di
 
 // What the work item needs, in the words a person would use.
 function headline(result, key) {
+  if (result.failed || (!result.done && result.repo && !result.problems?.length)) return { appearance: "warning", title: "Could not check, so Done stays blocked", body: result.message };
   if (result.skipped) return { appearance: "success", title: "No code needed", body: result.message };
-  if (result.done) return { appearance: "success", title: "Ready for Done", body: "Every linked pull request is merged, its checks passed and its tests were kept honest." };
+  if (result.done) return { appearance: "success", title: "Ready for Done", body: "Every linked pull request is merged, its checks passed and its tests were kept honest. Next: move it to Done." };
   if (result.problems?.some((p) => p.kind === "no-pr")) return { appearance: "information", title: "No pull request yet", body: `Put ${key} in a pull request title or branch name, for example "${key}: fix the cart total". Work with no code can carry the label no-code.` };
   if (!result.repo) return { appearance: "information", title: "Not set up yet", body: result.message };
-  if (result.problems?.some((p) => p.kind === "tampering")) return { appearance: "error", title: "Blocked: the tests were changed to pass", body: "CI may be green, but these changes make the tests prove less than before." };
-  return { appearance: "warning", title: "Not done yet", body: null };
+  if (result.problems?.some((p) => p.kind === "tampering")) return { appearance: "error", title: "Blocked: the tests were changed to pass", body: "CI may be green, but these changes make the tests prove less than before. Next: restore the checks below in the pull request, then press Check again." };
+  return { appearance: "warning", title: "Not done yet", body: "Next: fix the points below, then press Check again." };
 }
 
 function Evidence({ items, url }) {
@@ -59,7 +60,12 @@ function Timeline({ number }) {
   const [open, setOpen] = useState(false);
   const load = async () => {
     setOpen(true);
-    if (!t) setT(await invoke("timeline", { number }));
+    if (t) return;
+    try {
+      setT(await invoke("timeline", { number }));
+    } catch (e) {
+      setT({ ok: false, message: `Could not read the commits: ${e.message}` });
+    }
   };
   if (!open) return <Button appearance="subtle" onClick={load}>Show test timeline</Button>;
   if (!t) return <Spinner label="Reading each commit" />;
@@ -90,8 +96,13 @@ function Panel() {
 
   const run = async () => {
     setBusy(true);
-    setResult(await invoke("check"));
-    setBusy(false);
+    try {
+      setResult(await invoke("check"));
+    } catch (e) {
+      setResult({ failed: true, done: false, problems: [], message: `The check did not finish (${e.message}).` });
+    } finally {
+      setBusy(false);
+    }
   };
   useEffect(() => {
     run();

@@ -7,7 +7,7 @@ Proof of Done is a Forge app. When someone moves a work item to Done, it looks u
 - every linked pull request is **merged**,
 - its CI checks **ran and passed** (skipped or still-running checks don't count),
 - code changes come **with test changes**,
-- no test was **weakened, skipped or deleted** to get green: for example `toBe(9)` turned into `toBeDefined()`, a new `it.skip`, a test timeout doubled or more, retries added to a flaky test, or a lowered coverage threshold.
+- no test was **weakened, skipped or deleted** to get green: for example `toBe(9)` turned into `toBeDefined()`, a new `it.skip`, a test timeout more than doubled, a test emptied of its checks, retries added to a flaky test, or a lowered coverage threshold.
 - if the pull request carries an **AI agent signal** (a `Co-Authored-By: Claude/Copilot/...` trailer or a bot author in its commits), it must add at least one new exact assertion. This reads what the commits say about themselves; it is not a guess about who wrote the code.
 
 An error caught and dropped without handling is shown as a heads-up, not a block, because it is sometimes deliberate.
@@ -73,14 +73,14 @@ npm test
 
 ## How accurate is it?
 
-`benchmark/cases.js` holds 61 small pull-request diffs: 21 honest changes (renames, stronger assertions, moved test files, lower timeouts, small timeout bumps, runtime skips with a reason) and 40 shortcuts (20 weakened assertions across Jest, node:assert, pytest, unittest and JUnit; 10 skipped or deleted tests; 10 config or suppression tricks). `npm run benchmark` prints the result, and CI runs it on every pull request.
+`benchmark/cases.js` holds 70 small pull-request diffs: 25 honest changes (renames, stronger assertions, moved test files, lower timeouts, a timeout doubled for a slow runner, runtime skips with a reason, two checks merged into one) and 45 shortcuts (21 weakened assertions across Jest, node:assert, pytest, unittest and JUnit, including through a new variable; 13 skipped, emptied or deleted tests, including a test skipped only on CI and a deleted test replaced by an empty one; 11 config or suppression tricks, including coverage ignore comments). `npm run benchmark` prints the result, and CI runs it on every pull request.
 
 | | First run | Now |
 |---|---|---|
-| Shortcuts caught | 33 of 40 | 40 of 40 |
-| Honest changes wrongly flagged | 1 of 20 | 0 of 21 |
+| Shortcuts caught | 33 of 40 | 45 of 45 |
+| Honest changes wrongly flagged | 1 of 20 | 0 of 25 |
 
-The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over 68 honest merged pull requests from two other real repositories: none was blocked.
+The first run missed weakened assertions in Python, unittest and JUnit, and flagged a moved test file as deleted; those rules were fixed. The rules were also run over all 96 merged pull requests of three real repositories (including this one): none was blocked.
 
 Every block names the file and line, so a person can always see why.
 

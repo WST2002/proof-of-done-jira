@@ -4,20 +4,20 @@
 import { findTampering, isTestFile } from "./tamper.js";
 import { addsExactAssertion } from "./ai.js";
 
-const NON_CODE = /\.(md|mdx|txt|rst|png|jpe?g|gif|svg|lock)$|(^|\/)(docs?|\.github|\.vscode)\/|(^|\/)\.(editorconfig|gitignore|gitattributes)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|LICENSE)$/i;
+const NON_CODE = /\.(md|mdx|txt|rst|png|jpe?g|gif|svg|lock|css|scss|sass|less)$|(^|\/)(docs?|\.github|\.vscode)\/|(^|\/)\.(editorconfig|gitignore|gitattributes)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|LICENSE)$/i;
 const RUNNING = new Set(["queued", "in_progress", "pending", "waiting", "requested"]);
-const FAILED = new Set(["failure", "cancelled", "timed_out", "action_required", "startup_failure"]);
 const MAX_FINDINGS = 4;
 
 const DESCRIBE = {
   "deleted-file": "deletes a test file",
   "removed-tests": "removes tests",
+  "removed-assertions": "takes out exact checks and adds none back",
   suppressed: "hides an error or warning",
   skipped: "skips or focuses tests",
   "always-passes": "adds an assertion that can never fail",
   weakened: "replaces an exact assertion with a weaker one",
   threshold: "lowers a coverage threshold",
-  timeout: "raises a test timeout",
+  timeout: "more than doubles a test timeout",
   retry: "retries a failing test until it passes",
   swallowed: "drops an error without handling it",
 };
@@ -25,6 +25,7 @@ const DESCRIBE = {
 const WHY = {
   "deleted-file": "Every test in this file stopped running, so nothing checks that code any more.",
   "removed-tests": "Fewer tests run than before, and no new ones replace them.",
+  "removed-assertions": "The tests still run, but the lines that checked the result are gone, so they pass whatever the code does.",
   suppressed: "The error is still there; it is only hidden from the tools that would report it.",
   skipped: "The test no longer runs (or only a few tests run), so a failure cannot turn CI red.",
   "always-passes": "This line passes whatever the code does, so it proves nothing.",
@@ -47,7 +48,8 @@ function prProblems(pr, warnings) {
 
   const ran = pr.checks.filter((c) => c.conclusion !== "skipped" && c.conclusion !== "neutral");
   const running = ran.filter((c) => RUNNING.has(c.status));
-  const failed = ran.filter((c) => FAILED.has(c.conclusion));
+  // Only "success" counts as passed: an unknown or new conclusion must never turn into a green light.
+  const failed = ran.filter((c) => !RUNNING.has(c.status) && c.conclusion !== "success");
   if (failed.length) add("check-failed", `check ${failed.map((c) => `"${c.name}"`).join(", ")} failed.`);
   else if (running.length) add("check-pending", `check ${running.map((c) => `"${c.name}"`).join(", ")} is still running.`);
   else if (!ran.length) add("no-checks", "no test run is attached (no CI check ran).");
@@ -61,7 +63,7 @@ function prProblems(pr, warnings) {
   for (const f of all.filter((x) => WARN_ONLY.has(x.kind))) warn(`${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]} (${f.text}).`);
   const findings = all.filter((x) => !WARN_ONLY.has(x.kind));
   if (findings.length) {
-    const listed = findings.slice(0, MAX_FINDINGS).map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]}${f.text && f.kind !== "removed-tests" ? ` (${f.text})` : ""}`);
+    const listed = findings.slice(0, MAX_FINDINGS).map((f) => `${f.file}${f.line ? `:${f.line}` : ""} ${DESCRIBE[f.kind]}${f.text && f.kind !== "removed-tests" && f.kind !== "removed-assertions" ? ` (${f.text})` : ""}`);
     if (findings.length > MAX_FINDINGS) listed.push(`and ${findings.length - MAX_FINDINGS} more`);
     add("tampering", `changes that can make checks pass without fixing anything: ${listed.join("; ")}.`);
     // The panel shows each change as before → after: the moment a reviewer sees why green is not proof.

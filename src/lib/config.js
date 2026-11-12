@@ -54,3 +54,8 @@ export const issueKeyOf = (payload) => (payload.issueKey || payload.context?.jir
 
 // Which service a configured repository lives on, for messages people read.
 export const hostOf = (repo) => (repo.startsWith("bitbucket:") ? "Bitbucket" : "GitHub");
+
+// Settings and workflow changes run only from the admin page: Forge shows that page to Jira admins only, and the
+// module key comes from Forge's signed context, so the issue panel cannot call these resolvers.
+export const ADMIN_MODULE = "proof-of-done-admin";
+export const adminOnly = (context) => (context?.moduleKey === ADMIN_MODULE || context?.extension?.type === "jira:adminPage" ? null : "This can be changed only from the Proof of Done settings page (Jira admins).");

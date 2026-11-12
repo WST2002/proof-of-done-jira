@@ -1,4 +1,4 @@
-// Benchmark: 21 honest changes that must pass and 40 test-tampering changes that must be caught.
+// Benchmark: 25 honest changes that must pass and 45 test-tampering changes that must be caught.
 // Each case is a small unified diff, like one pull request.
 
 const file = (path, removed, added) =>
@@ -27,6 +27,10 @@ const honest = [
   ["HTTP timeout in app code", file("src/client.js", ["  timeout: 5000,"], ["  timeout: 30000,"])],
   ["refactor a test helper", file("test/helpers.js", ["export const make = () => ({ items: [] });"], ["export const makeCart = (items = []) => ({ items });"])],
   ["small timeout bump", file("test/api.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(7000);"])],
+  ["timeout doubled for a slow runner", file("test/api.test.js", ["jest.setTimeout(5000);"], ["jest.setTimeout(10000);"])],
+  ["test.concurrent added for speed", file("test/api.test.js", ["test('loads', async () => {"], ["test.concurrent('loads', async () => {"])],
+  ["two exact checks merged into one", file("test/user.test.js", ["  expect(user.id).toBe(1);", "  expect(user.name).toBe('Ana');"], ["  expect(user).toEqual({ id: 1, name: 'Ana' });"])],
+  ["exact check moved into a helper", file("test/calc.test.js", ["  expect(calculate(x)).toBe(42);"], ["  expectAnswer(calculate(x));", "const expectAnswer = (v) => expect(v).toBe(42);"])],
   ["runtime skip with a reason (node:test)", file("test/clip.test.mjs", ["  const tool = find();"], ["  if (!tool) return t.skip('no clipboard tool on this machine');"])],
 ];
 
@@ -51,6 +55,7 @@ const weakened = [
   ["node assert.throws → assert.ok", file("test/guard.test.js", ["  assert.throws(() => guard(-1), RangeError);"], ["  assert.ok(guard);"])],
   ["python assertIn → assertTrue", file("tests/test_tags.py", ["        self.assertIn('ai', tags(post))"], ["        self.assertTrue(tags(post))"])],
   ["jest toMatch → toBeDefined", file("test/slug.test.js", ["  expect(slug('A b')).toMatch(/^a-b$/);"], ["  expect(slug('A b')).toBeDefined();"])],
+  ["weakened through a new variable", file("test/cart.test.js", ["  expect(total(cart)).toBe(90);"], ["  const actual = total(cart);", "  expect(actual).toBeDefined();"])],
 ];
 
 const skippedOrDeleted = [
@@ -64,6 +69,9 @@ const skippedOrDeleted = [
   ["test file deleted", deleted("test/payment.test.js", ["test('charges', () => {", "  expect(charge(10)).toBe('ok');", "});"])],
   ["test case removed", file("test/cart.test.js", ["test('rounds', () => {", "  expect(round(1.005)).toBe(1.01);", "});"], [])],
   ["unittest skip decorator", file("tests/test_cart.py", ["    def test_rounds(self):"], ["    @unittest.skip('later')", "    def test_rounds(self):"])],
+  ["test body emptied, name kept", file("test/cart.test.js", ["test('calculates the cart total', () => {", "  expect(total(cart)).toBe(90);", "});"], ["test('calculates the cart total', () => {", "});"])],
+  ["go: skipped only on CI", file("cart/cart_test.go", ["	got := Total(cart)"], ["	if os.Getenv(\"CI\") != \"\" {", "		t.Skip(\"temporarily disabled in CI\")", "	}", "	got := Total(cart)"])],
+  ["deleted test replaced by an empty one", deleted("test/payment.test.js", ["test('rejects an expired card', () => {", "  expect(() => charge(expiredCard)).toThrow('expired');", "});"]) + created("test/smoke.test.js", ["test('smoke test', () => {});"])],
 ];
 
 const config = [
@@ -77,6 +85,7 @@ const config = [
   ["pytest flaky rerun added", file("tests/test_api.py", ["def test_fetch():"], ["@pytest.mark.flaky(reruns=3)", "def test_fetch():"])],
   ["eslint-disable added in code", file("src/cart.js", ["const total = sum(lines);"], ["// eslint-disable-next-line no-unused-vars", "const total = sum(lines);"])],
   ["@ts-ignore added in code", file("src/cart.ts", ["  return lines.reduce(add, 0);"], ["  // @ts-ignore", "  return lines.reduce(add, 0);"])],
+  ["istanbul ignore added", file("src/cart.js", ["  if (!cart) return 0;"], ["  /* istanbul ignore next */", "  if (!cart) return 0;"])],
 ];
 
 export const cases = [
