@@ -78,20 +78,28 @@ export async function onIssueUpdated(event) {
   });
 }
 
-export async function checkDone(payload) {
-  const key = payload.issueKey || payload.context?.jira?.issueKey;
+const keyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();
+
+// Rovo and MCP callers see only work items their own Jira permissions allow, and a typo gets a clear answer.
+async function unseen(key) {
   if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const res = await api.asUser().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
+  return res.ok ? null : { issueKey: key, found: false, message: `${key} was not found, or you do not have permission to see it.` };
+}
+
+export async function checkDone(payload) {
+  const key = keyOf(payload);
+  const missing = await unseen(key);
+  if (missing) return missing;
   const v = await check(key);
   return { issueKey: key, done: v.done, message: v.message, problems: v.problems, pullRequests: v.prs };
 }
 
-// @forge/resolver is CommonJS; in an ES module its class arrives as .default.
-const keyOf = (payload) => (payload.issueKey || payload.context?.jira?.issueKey || "").trim().toUpperCase();
-
 // Rovo / MCP: every change that makes the tests prove less, as before → after.
 export async function getTestEvidence(payload) {
   const key = keyOf(payload);
-  if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const missing = await unseen(key);
+  if (missing) return missing;
   const v = await check(key);
   const evidence = (v.problems ?? []).flatMap((p) => (p.evidence ?? []).map((e) => ({ pr: p.pr, ...e })));
   return { issueKey: key, done: v.done, summary: evidence.length ? `${evidence.length} change(s) make the tests prove less.` : v.message, evidence, headsUp: (v.warnings ?? []).map((w) => w.text) };
@@ -100,7 +108,8 @@ export async function getTestEvidence(payload) {
 // Rovo / MCP: commit by commit, and where CI turned green after the tests were changed.
 export async function getTestTimeline(payload) {
   const key = keyOf(payload);
-  if (!key) return "Tell me which work item to check, for example SHOP-12.";
+  const missing = await unseen(key);
+  if (missing) return missing;
   const { config, token, bitbucketToken } = await settings();
   const repo = repoFor(config, key);
   if (!repo) return { issueKey: key, message: "Proof of Done is not set up for this project yet." };
@@ -119,6 +128,7 @@ export async function getTestTimeline(payload) {
   return { issueKey: key, timelines };
 }
 
+// @forge/resolver is CommonJS; in an ES module its class arrives as .default.
 const Resolver = resolverModule.default ?? resolverModule;
 const resolver = new Resolver();
 
