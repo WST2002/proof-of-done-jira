@@ -18,7 +18,7 @@ const THRESHOLD = /\b(branches|functions|lines|statements|fail_under|fail-under|
 const NON_CODE = /\.(md|mdx|txt|rst|lock)$|(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/;
 // Test runner config files: timeouts and retries set there hide slow or flaky tests just like in a test file.
 const TEST_CONFIG = /(^|\/)(jest|vitest|playwright|cypress|karma|mocha)\.config\.[cm]?[jt]s$|(^|\/)\.mocharc\.|(^|\/)(pytest\.ini|setup\.cfg|tox\.ini|pyproject\.toml)$/;
-// A timeout value, so a raised one can be compared with the one it replaced.
+// A timeout value, so a raised one can be compared with the one it replaced. A small bump is normal tuning; doubling it or more hides a slow test.
 const TIMEOUTS = [
   /\b(?:jest\.setTimeout|this\.timeout|test\.setTimeout|setDefaultTimeout)\(\s*(\d+)/,
   /\b(?:testTimeout|timeout|defaultTimeout)["']?\s*[:=]\s*(\d+)/,
@@ -121,7 +121,7 @@ export function findTampering(diff, ignore = () => false) {
           for (const re of TIMEOUTS) {
             const now = re.exec(code)?.[1];
             const was = removed.map((r) => re.exec(withoutStrings(r.text))?.[1]).find(Boolean);
-            if (now && was && Number(now) > Number(was)) { add("timeout", removed.find((r) => re.exec(withoutStrings(r.text)))?.text); break; }
+            if (now && was && Number(now) >= 2 * Number(was)) { add("timeout", removed.find((r) => re.exec(withoutStrings(r.text)))?.text); break; }
           }
         } else if (SWALLOW.test(code) || (PY_EXCEPT.test(code) && /^\s*pass\s*$/.test(added[added.findIndex((a) => a.line === line) + 1]?.text ?? ""))) add("swallowed");
         const before = removed.map((r) => THRESHOLD.exec(r.text)).find((m) => m && m[1] === THRESHOLD.exec(text)?.[1]);
