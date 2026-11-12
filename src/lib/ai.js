@@ -1,4 +1,4 @@
-// Tells whether a pull request was written with an AI agent, from its commits, and whether it adds a real test.
+// Reads the AI agent signal a pull request's commits carry (co-author trailers, bot authors), and whether it adds a real test.
 import { parseDiff, isTestFile } from "./tamper.js";
 
 const AGENTS = ["Claude", "Copilot", "Cursor", "Codex", "Devin", "Gemini", "Aider", "OpenHands", "Kiro", "Amazon Q", "Windsurf", "ChatGPT"];

@@ -128,7 +128,7 @@ function Panel() {
               </Link>
               <Lozenge appearance={pr.merged ? "success" : "moved"}>{pr.merged ? "merged" : "not merged"}</Lozenge>
               <Text>{pr.files === 1 ? "1 file" : `${pr.files} files`}</Text>
-              {pr.ai ? <Lozenge appearance="new">{`written with ${pr.ai}`}</Lozenge> : null}
+              {pr.ai ? <Lozenge appearance="new">{`commits credit ${pr.ai}`}</Lozenge> : null}
             </Inline>
             <Timeline number={pr.number} />
             <Inline space="space.075" shouldWrap>
