@@ -46,7 +46,13 @@ async function pages(get, path, max = 3) {
 // CI results for a commit: check runs (GitHub Actions and most apps), or the older commit statuses some CI services still use.
 async function checksOf(get, repo, sha) {
   const runs = await pages(get, `/repos/${repo}/commits/${sha}/check-runs`, 1);
-  if (runs.length) return runs;
+  // A workflow on both push and pull_request runs the same check twice on one commit: keep the latest run of each.
+  const latest = new Map();
+  for (const r of runs) {
+    const seen = latest.get(r.name);
+    if (!seen || (r.started_at ?? "") > (seen.started_at ?? "")) latest.set(r.name, r);
+  }
+  if (runs.length) return [...latest.values()];
   const combined = await get(`/repos/${repo}/commits/${sha}/status`);
   return (combined.statuses ?? []).map((s) => ({ name: s.context, html_url: s.target_url, status: s.state === "pending" ? "in_progress" : "completed", conclusion: s.state === "success" ? "success" : s.state === "pending" ? null : "failure" }));
 }

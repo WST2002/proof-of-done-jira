@@ -65,3 +65,9 @@ test("the whole pull request diff can be read when the files list leaves a large
   assert.match(diff, /^diff --git a\/test\/config\.test\.js b\/test\/config\.test\.js/m);
   assert.match(diff, /^\+.*assert\.ok\(checkSkipLabel/m);
 });
+
+test("a check that ran twice on the same commit (push and pull request) is listed once", async () => {
+  const [pr] = await linkedPullRequests({ fetch, token: process.env.GITHUB_TOKEN, repo: "WST2002/proof-of-done-demo", key: "DEMO-2" });
+  assert.deepEqual(pr.checks.map((c) => c.name), ["test"]);
+  assert.equal(pr.checks[0].conclusion, "success");
+});
