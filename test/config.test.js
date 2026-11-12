@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseRepos, formatRepos, repoFor, issueKeyOf } from "../src/lib/config.js";
+import { parseRepos, formatRepos, repoFor, issueKeyOf, hostOf } from "../src/lib/config.js";
 
 test("a default repo and per-project repos are read from the admin's text", () => {
   const { config, problems } = parseRepos("acme/shop\nPAY = acme/payments\nweb=https://github.com/acme/website.git\n# a comment\n");
@@ -54,4 +54,9 @@ test("an MCP or Rovo caller's key is trimmed and upper-cased", () => {
   assert.equal(issueKeyOf({ issueKey: " pod-6 " }), "POD-6");
   assert.equal(issueKeyOf({ context: { jira: { issueKey: "SHOP-2" } } }), "SHOP-2");
   assert.equal(issueKeyOf({}), "");
+});
+
+test("messages name the service the repository lives on", () => {
+  assert.equal(hostOf("bitbucket:wst2002rk/shop-demo"), "Bitbucket");
+  assert.equal(hostOf("WST2002/proof-of-done-jira"), "GitHub");
 });
