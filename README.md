@@ -2,6 +2,8 @@
 
 A Jira work item moves to **Done** only when the work behind it is really done.
 
+**Watch the 4-minute demo:** https://youtu.be/-1pz_HvDxQo
+
 Proof of Done is a Forge app. When someone moves a work item to Done, it looks up the GitHub or Bitbucket Cloud pull requests that mention the item's key and blocks the move unless:
 
 - every linked pull request is **merged**,
@@ -26,7 +28,7 @@ Every work item also gets a **Proof of Done** box that shows the same check befo
 
 When a work item is blocked, **Create a task to fix this** turns the block into the next piece of work: a sub-task (or a linked Task) with the file, the line, the check before and after, and the pull request link written in. Pressing it again for the same commits opens the same task instead of a duplicate.
 
-Each project gets a **Proof of Done** page (in the project's tabs) for team leads: how many work items are ready, blocked now, caught with tests changed to pass, or let through by an override, the latest catches, and tables with the reason for each block and each override (who, why, when). It searches as the person viewing it, so nobody sees a work item Jira would hide from them. The settings page shows the same counts for every project over the last 30 days.
+Each project gets a **Proof of Done dashboard** page (in the project's tabs) for team leads: how many work items are ready, blocked now, caught with tests changed to pass, or let through by an override, the latest catches, and tables with the reason for each block and each override (who, why, when). It searches as the person viewing it, so nobody sees a work item Jira would hide from them. The settings page shows the same counts for every project over the last 30 days.
 
 The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
 
@@ -37,7 +39,7 @@ A project admin or a Jira admin can press **Wrong block? Override** on the work 
 ## Try it in a few minutes
 
 1. [Install Proof of Done for Jira](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira) on your site (choose your site, then **Get app**).
-2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). No settings needed: a DEMO project reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
+2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). No repository setting needed: a DEMO project reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
 3. Jira settings → Apps → **Proof of Done settings** → **Turn it on for a project** → DEMO → **Apply**.
 4. Move each work item to Done:
 
@@ -66,17 +68,28 @@ To use them from an external client, a site admin turns on external MCP access f
 claude mcp add --transport http proof-of-done https://mcp.atlassian.com/forge/487a9b05-d2bc-4e8f-98ce-2c533e95676f
 ```
 
-Or try it from this repository: `npm run mcp-check -- POD-13 POD-6`. It prints a sign-in link, and after you press **Accept** it lists the tools and calls each one for the keys you gave.
+Or try it from this repository: `npm run mcp-check -- DEMO-2 DEMO-4`. It prints a sign-in link, and after you press **Accept** it lists the tools and calls each one for the keys you gave.
 
-## Catch it before merge (Bitbucket)
+## Setup for your own project
 
-`bitbucket-merge-check/` is a second, small Forge app for Bitbucket Cloud. It adds a **custom merge check** that runs the same test-tampering rules on every push to a pull request, so the problem shows up on the pull request itself, before anyone merges. On Bitbucket Premium the check can be made required to block the merge; on Bitbucket Free it shows on the pull request as a warning and the merge button stays available.
+You need to be a Jira admin on the site. Nothing is downloaded or installed on your computer.
 
-To use it: install it on your workspace, enable **Workspace settings → Custom merge checks**, then add **Proof of Done** under **Repository settings → Custom merge checks**.
+1. **Install the app.** Open the [installation link](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira), choose your Jira site and press **Get app**.
+2. **Open the settings.** In Jira: **Jira settings (gear icon) → Apps → Proof of Done settings**.
+3. **Add your repository** in the **Repositories** box, one line per Jira project, written `KEY=repository`:
+   - `KEY` is your Jira project key: the letters at the start of every work item. In `SHOP-12` the key is `SHOP`.
+   - For GitHub, the repository is `owner/name` from its address: `github.com/acme/shop` → `SHOP=acme/shop`.
+   - For Bitbucket Cloud, write `bitbucket:workspace/name`: `bitbucket.org/acme/shop` → `SHOP=bitbucket:acme/shop`.
+   - A line without `KEY=` is used for every project that has no line of its own.
+4. **Add a token if you need one** (same page), then press **Save**. Tokens are stored encrypted and never shown again.
+   - **GitHub:** needed for private repositories, and recommended for public ones (GitHub allows only 60 requests an hour without a token). On GitHub: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Choose only the repositories you use, and give read-only access to Contents, Pull requests, Commit statuses and Actions. For public repositories, "Public repositories" access is enough. Pick an expiry date far enough ahead.
+   - **Bitbucket Cloud:** needed for private repositories. Create an API token for your Atlassian account with read access to repositories and pull requests, and enter it as `email:api-token`.
+5. **Turn it on for a project.** On the same page, under **Turn it on for a project**, pick the project. Proof of Done previews which transitions into Done get its validator and condition; nothing changes until you press **Apply**.
+   - Team-managed projects: open the project's settings → **Workflow**, select the transition into Done and add the **Proof of Done** rule there.
+6. **Link your pull requests.** Put the work item key in the pull request title or branch name, for example `SHOP-12: fix checkout total` or branch `SHOP-12-checkout`.
+7. **Work with no code** (design, research, a meeting): add the label `no-code` to the work item and it moves to Done without a pull request. You can rename that label on the settings page.
 
-## Setup
-
-**Install from the link** (no code needed): open the [installation link](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira), choose your Jira site, then in Jira go to **Jira settings → Apps → Proof of Done settings** and enter the repository for each project: `owner/name` for GitHub, `bitbucket:workspace/name` for Bitbucket Cloud (and a read-only token for private repositories). Then, on the same settings page, choose a project under **Turn it on for a project**: it previews which transitions into Done get the validator and condition, and applies them when you press **Apply**.
+Every work item now shows a **Proof of Done** box, and each project has a **Proof of Done dashboard** tab.
 
 **Or deploy your own copy** with Node.js 22 and the Forge CLI:
 
@@ -87,7 +100,14 @@ forge deploy
 forge install
 ```
 
-Pull requests are linked when the PR title or branch name contains the work item key, for example `SHOP-12: round prices`.
+## Catch it before merge (Bitbucket)
+
+`bitbucket-merge-check/` is a second, small Forge app for Bitbucket Cloud. It adds a **custom merge check** that runs the same test-tampering rules on every push to a pull request, so the problem shows up on the pull request itself, before anyone merges. It is optional: the Jira app works with Bitbucket without it.
+
+1. Open the [Bitbucket installation link](https://developer.atlassian.com/console/install/830dc76c-c046-40a9-9f99-f5edfd5b76b1?signature=AYABeHhe2sD0FPxZPzvvAtVszv8AAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBo6fG09DTRBAslqWkbgqO1gAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDKQauWFKVdoQdm0pyAIBEIA7pj4FDCfB%2FhgHAvV0FOrYOHjGgx8Se%2BQdVjfbIiSdhcG44QgKvCeu5tR7LpcyfPsmqpGQbPX%2FQz%2B7HcgAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgE3NJziQFFIJiL8EscJfgRmAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMbAFKnpk4gN63PmvOAgEQgDsUUAUWX8LaOh8npj7WOMIkHa02iYBx5mBHjc4aZ4EqiafeBvj52Wto%2B35MHKh5OKDI%2FfKrr09%2BRTX6igAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAXNkRRYYoobBQQVo9XlJt7gAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxsPx3LzYpz%2FdoOTTgCARCAO6mdFaIw2HIg4s7bdUp1l8eFsYy%2BZWEqVRBypJhWUYVxJDSBHP9Kl17lLg%2BCpWCWBfJ5Cbuons9RSaI9AgAAAAAMAAAQAAAAAAAAAAAAAAAAAHxyOBWjctr8RtEbTlLelHz%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADJyv9KGWWhWZRVFEIVdJyDnn6JoaTeB71cpqNdvOJiGvoThJw0JFFGZtqtv67Loa%2BJDBDywS%2BeBLv1g77Ts%2FG3WjQ4%3D&product=bitbucket), choose your Bitbucket workspace and press **Get app**.
+2. In Bitbucket: **Workspace settings → Custom merge checks**, and turn custom merge checks on.
+3. In the repository: **Repository settings → Custom merge checks → Add**, choose **Proof of Done**.
+4. Open or update a pull request. On Bitbucket Premium the check can be made required, so the merge button stays locked until it passes. On Bitbucket Free it shows on the pull request as a warning and the merge button stays available.
 
 ## Tests
 
