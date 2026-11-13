@@ -1,36 +1,64 @@
 # Proof of Done for Jira
 
-A Jira work item moves to **Done** only when the work behind it is really done.
+**A free Jira app that blocks Done when a pull request weakened its tests to get green CI.**
 
-**Watch the 4-minute demo:** https://youtu.be/-1pz_HvDxQo
+[![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/-1pz_HvDxQo)
 
-Proof of Done is a Forge app. When someone moves a work item to Done, it looks up the GitHub or Bitbucket Cloud pull requests that mention the item's key and blocks the move unless:
+▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/-1pz_HvDxQo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project)
+
+## The problem, in one line of code
+
+```diff
+- expect(total(cart)).toBe(90);
++ expect(total(cart)).toBeDefined();
+```
+
+The test used to check the exact total. Now it passes for almost any value, even a wrong one. CI stays green, the pull request is merged, Jira says Done, and a few days later customers are charged the wrong total.
+
+**Proof of Done stops that move to Done** and shows why, right on the work item. This is what it shows for DEMO-2 in the demo project:
+
+> **Blocked: the tests were changed to pass**
+> `test/cart.test.js:19` replaces an exact assertion with a weaker one
+> Before: `assert.equal(roundPrice(10.456), 10.46);`
+> After: `assert.ok(roundPrice(10.456));`
+> The old line checked one exact value. The new one passes for almost any value, so a wrong result would still go green.
+
+## How it differs
+
+| | "PR merged" conditions and CI gates | **Proof of Done** |
+|---|:---:|:---:|
+| Is every pull request merged? | ✅ | ✅ |
+| Did CI run and pass? | ✅ | ✅ (skipped or running checks don't count) |
+| Were tests weakened, skipped or deleted to get green? | ❌ | ✅ with file, line, before and after |
+| Which commit turned CI green right after a test was changed? | ❌ | ✅ test timeline |
+| A fix task, a team-lead dashboard, an audit receipt | ❌ | ✅ |
+
+## What it checks
+
+When someone moves a work item to Done, Proof of Done reads the GitHub or Bitbucket Cloud pull requests that mention the work item's key, and blocks the move unless:
 
 - every linked pull request is **merged**,
-- its CI checks **ran and passed** (skipped or still-running checks don't count),
+- its CI checks **ran and passed**,
 - code changes come **with test changes**,
-- no test was **weakened, skipped or deleted** to get green: for example `toBe(9)` turned into `toBeDefined()`, a new `it.skip`, a test timeout more than doubled, a test emptied of its checks, retries added to a flaky test, or a lowered coverage threshold.
-- if the pull request carries an **AI agent signal** (a `Co-Authored-By: Claude/Copilot/...` trailer or a bot author in its commits), it must add at least one new exact assertion. This reads what the commits say about themselves; it is not a guess about who wrote the code.
+- no test was **weakened, skipped or deleted** to get green: `toBe(9)` turned into `toBeDefined()`, a new `it.skip`, a test timeout more than doubled, a test emptied of its checks, retries added to a flaky test, or a lowered coverage threshold,
+- a pull request whose commits credit an **AI agent** (a `Co-Authored-By: Claude/Copilot/...` trailer or a bot author) adds at least one new exact assertion.
 
-An error caught and dropped without handling is shown as a heads-up, not a block, because it is sometimes deliberate.
+An error caught and ignored is shown as a heads-up, not a block, because it is sometimes deliberate.
 
-**How it differs:** checklist apps check that boxes are ticked, and delivery checks look at merges and CI. Proof of Done puts test integrity into Jira's Done decision: it reads the test diff and blocks Done when the tests were weakened to get green.
+## What you get
 
-If something is missing, Jira shows exactly what, with file and line, the line before and after, and one sentence on why that change is suspicious, so the fix is obvious.
+- **A Proof of Done box on every work item:** the same check before anyone tries Done, with each pull request, its CI checks, every problem found and a **Check again** button.
+- **Done is hidden while the last check failed** (optional workflow condition), and checked again at the moment someone moves the work item.
+- **Test timeline:** every commit of the pull request with its CI result, marking the commit where CI turned green after the tests were changed.
+- **Create a task to fix this:** one click turns a block into a sub-task (or linked Task) with the file, line, before and after, and the pull request link written in. No duplicates.
+- **Proof of Done dashboard** in every project for team leads: ready, blocked now, tests changed to pass, overrides, with the reason for each.
+- **Audit receipt** on Done: the merged pull requests, the commit checked, the CI runs and the rules version.
+- **Override with a reason** for the rare wrong block, kept on the work item.
+- **No-code work** (design, research, a meeting) carries the label `no-code` and skips the check.
+- **AI agents can ask too:** Rovo agent and MCP tools (`check-done`, `get-test-evidence`, `get-test-timeline`).
+- **Bitbucket merge check:** the same rules on the pull request, before merge.
 
-Work that needs no code (design, research, a meeting) gets the label `no-code` and moves to Done without a pull request. Admins can change that label in the settings page.
-
-Add the **Proof of Done** condition to the same transition and Done is hidden while the last check failed; re-checking from the work item brings it back.
-
-When the work item reaches Done, Proof of Done leaves an **audit receipt** comment: each merged pull request, its CI checks and the test-honesty result, so the evidence stays with the work item. The receipt pins the exact commit, links each CI run and names the rules version. The validator never trusts an earlier result: it checks the pull requests again at the moment someone moves the work item.
-
-Every work item also gets a **Proof of Done** box that shows the same check before anyone tries Done: each linked pull request, its CI checks and every problem found, with a **Check again** button.
-
-When a work item is blocked, **Create a task to fix this** turns the block into the next piece of work: a sub-task (or a linked Task) with the file, the line, the check before and after, and the pull request link written in. Pressing it again for the same commits opens the same task instead of a duplicate.
-
-Each project gets a **Proof of Done dashboard** page (in the project's tabs) for team leads: how many work items are ready, blocked now, caught with tests changed to pass, or let through by an override, the latest catches, and tables with the reason for each block and each override (who, why, when). It searches as the person viewing it, so nobody sees a work item Jira would hide from them. The settings page shows the same counts for every project over the last 30 days.
-
-The test-tampering rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
+The rules are the same ones used by [proof-of-done](https://github.com/WST2002/claude-code-skills/tree/main/plugins/proof-of-done), a Claude Code plugin that stops an AI agent from saying "done" before the tests pass ([30-second demo](https://youtube.com/shorts/ozlYRXQTs-U)).
 
 ## When a block is wrong
 
