@@ -62,7 +62,7 @@ async function evaluate(key) {
   const skipped = skipReason(await labelsOf(key), skipLabel);
   if (skipped) return { done: true, skipped: true, repo: "", prs: [], problems: [], message: skipped };
   const repo = repoFor(config, key);
-  if (!repo) return { done: false, repo, prs: [], problems: [], message: "Proof of Done is not set up for this project yet: a Jira admin can add the GitHub or Bitbucket repository under Apps → Proof of Done." };
+  if (!repo) return { done: false, repo, prs: [], problems: [], message: "Proof of Done is not set up for this project yet: a Jira admin can add the GitHub or Bitbucket repository under Jira settings → Apps → Proof of Done settings." };
   try {
     const prs = repo.startsWith("bitbucket:")
       ? await linkedBitbucketPullRequests({ fetch: api.fetch, token: bitbucketToken, repo: repo.slice("bitbucket:".length), key })
