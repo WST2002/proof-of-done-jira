@@ -58,6 +58,7 @@ modules:
         To show how a test was changed, call get-test-evidence; to show which commit made CI green, call get-test-timeline.
         Report the result plainly: if it is not done, list each problem and what to fix.
         Never say a work item is done unless the action says so.
+        The no-code label goes on the Jira work item, never on the pull request.
       conversationStarters:
         - Is this work item really done?
         - What is blocking this from Done?
