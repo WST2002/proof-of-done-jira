@@ -13,7 +13,7 @@ import { afterDone } from "./lib/trigger.js";
 import { checkRecord } from "./lib/record.js";
 import { summarize, byProject } from "./lib/dashboard.js";
 import { fixTask, pickIssueType } from "./lib/fixtask.js";
-import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly } from "./lib/config.js";
+import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly, jiraAdminRefusal } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
@@ -171,7 +171,11 @@ const resolver = new Resolver();
 // Settings and workflow changes: refused unless the call comes from the admin page.
 const admin = (fn) => async (req) => {
   const refused = adminOnly(req.context);
-  return refused ? { ok: false, message: refused } : fn(req);
+  if (refused) return { ok: false, message: refused };
+  // Also ask Jira, as the person, whether they are a Jira admin: the page they came from is not enough on its own.
+  const perm = await api.asUser().requestJira(route`/rest/api/3/mypermissions?permissions=ADMINISTER`, { headers: { Accept: "application/json" } });
+  const notAdmin = jiraAdminRefusal(perm.ok ? await perm.json() : null);
+  return notAdmin ? { ok: false, message: notAdmin } : fn(req);
 };
 
 resolver.define("check", async ({ context }) => check(context.extension.issue.key));
