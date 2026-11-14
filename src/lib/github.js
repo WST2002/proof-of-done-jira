@@ -136,3 +136,19 @@ export async function pullMentions({ fetch, token, repo, number, key }) {
 
 /** The whole unified diff of a pull request, including large files the files API leaves out. */
 export const pullRequestDiff = ({ fetch, token, repo, number }) => client(fetch, token)(`/repos/${repo}/pulls/${Number(number)}`, true);
+
+// Which GitHub access the checks really get: the first token GitHub accepts, or anonymous (60 requests an hour).
+// tokens: [[label, token], ...] in order of use. /rate_limit itself does not count against the limit.
+export async function githubAccess({ fetch, tokens }) {
+  const base = { Accept: "application/vnd.github+json", "User-Agent": "proof-of-done-jira", "X-GitHub-Api-Version": "2022-11-28" };
+  const core = async (headers) => {
+    const res = await fetch(`${API}/rate_limit`, { headers });
+    return res.ok ? (await res.json()).resources.core : null;
+  };
+  for (const [source, token] of tokens.filter(([, t]) => t)) {
+    const c = await core({ ...base, Authorization: `Bearer ${token}` });
+    if (c) return { source, limit: c.limit, remaining: c.remaining };
+  }
+  const c = await core(base);
+  return { source: "none", limit: c?.limit ?? 60, remaining: c?.remaining ?? null };
+}
