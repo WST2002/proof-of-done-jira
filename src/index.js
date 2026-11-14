@@ -9,15 +9,17 @@ import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt, afterDoneNote, overrideNote } from "./lib/receipt.js";
 import { overrideFor, checkReason } from "./lib/override.js";
+import { afterDone } from "./lib/trigger.js";
 import { checkRecord } from "./lib/record.js";
 import { summarize, byProject } from "./lib/dashboard.js";
 import { fixTask, pickIssueType } from "./lib/fixtask.js";
-import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly } from "./lib/config.js";
+import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_SKIP_LABEL, issueKeyOf, hostOf, adminOnly, jiraAdminRefusal } from "./lib/config.js";
 
 const CONFIG = "config";
 const TOKEN = "github-token";
 const BB_TOKEN = "bitbucket-token";
-const OVERRIDE = "proof-of-done-override";
+// Overrides live in app storage (only this app can write it), keyed by work item.
+const overrideKey = (key) => `override:${key}`;
 const FIX = "proof-of-done-fix";
 
 async function settings() {
@@ -70,8 +72,8 @@ async function evaluate(key) {
     const v = { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai, sha }) => ({ number, url, merged, checks, files: files.length, ai, sha })) };
     if (v.done) return v;
     // A project admin's recorded override lets this work item through, but only for the commits it was given for.
-    const saved = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${OVERRIDE}`, { headers: { Accept: "application/json" } });
-    const overridden = saved.ok ? overrideFor((await saved.json()).value, v.prs) : null;
+    // Read from app storage, never from an issue property: anyone who can edit a work item can write its properties.
+    const overridden = overrideFor(await kvs.get(overrideKey(key)), v.prs);
     return overridden ? { ...v, done: true, overridden, message: `Done by a recorded override. Reason: ${overridden.reason}` } : v;
   } catch (e) {
     return { done: false, repo, prs: [], problems: [], message: `Could not check ${hostOf(repo)}, so Done is blocked for now: ${e.message}` };
@@ -90,13 +92,15 @@ export async function onIssueUpdated(event) {
   const toDone = event.issue.fields?.status?.statusCategory?.key === "done" || /^done$/i.test(moved?.toString ?? "");
   if (!key || !moved || !toDone) return;
   const v = await check(key);
+  const action = afterDone(v);
+  if (!action) return;
   // One receipt per checked state: a repeated event for the same commits does not post it twice.
   const stamp = `receipt:${v.done}:${(v.prs ?? []).map((p) => p.sha).join(",")}`;
   const seen = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done-receipt`, { headers: { Accept: "application/json" } });
   if (seen.ok && (await seen.json()).value?.stamp === stamp) return;
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done-receipt`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stamp }) });
   // If the work changed between the move and this check, say so on the work item instead of staying silent.
-  const body = v.done ? receipt(v) : afterDoneNote(v);
+  const body = action === "receipt" ? receipt(v) : afterDoneNote(v);
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -167,7 +171,11 @@ const resolver = new Resolver();
 // Settings and workflow changes: refused unless the call comes from the admin page.
 const admin = (fn) => async (req) => {
   const refused = adminOnly(req.context);
-  return refused ? { ok: false, message: refused } : fn(req);
+  if (refused) return { ok: false, message: refused };
+  // Also ask Jira, as the person, whether they are a Jira admin: the page they came from is not enough on its own.
+  const perm = await api.asUser().requestJira(route`/rest/api/3/mypermissions?permissions=ADMINISTER`, { headers: { Accept: "application/json" } });
+  const notAdmin = jiraAdminRefusal(perm.ok ? await perm.json() : null);
+  return notAdmin ? { ok: false, message: notAdmin } : fn(req);
 };
 
 resolver.define("check", async ({ context }) => check(context.extension.issue.key));
@@ -186,7 +194,7 @@ resolver.define("override", async ({ payload, context }) => {
   if (v.done) return { ok: false, message: "Nothing to override: the check passes." };
   if (!v.prs.length) return { ok: false, message: "Nothing to override: no pull request is linked. Use the no-code label for work without code." };
   const saved = { accountId: context.accountId, at: new Date().toISOString(), reason: String(payload.reason).trim(), shas: v.prs.map((p) => p.sha) };
-  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${OVERRIDE}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(saved) });
+  await kvs.set(overrideKey(key), saved);
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -229,7 +237,7 @@ resolver.define("fixTask", async ({ context }) => {
 
 // The project dashboard and the settings page read the saved check of the most recently updated work items.
 // The search runs as the viewer, so nobody sees a work item Jira would hide from them.
-const PROPERTIES = ["proof-of-done", OVERRIDE];
+const PROPERTIES = ["proof-of-done"];
 async function recentIssues(as, jql) {
   const res = await jiraAs(as, route`/rest/api/3/search/jql`, { method: "POST", body: JSON.stringify({ jql, maxResults: 100, fields: ["summary", "status"], properties: PROPERTIES }) });
   return (res.issues ?? []).map((i) => ({
@@ -238,7 +246,6 @@ async function recentIssues(as, jql) {
     status: i.fields?.status?.name ?? "",
     statusCategory: i.fields?.status?.statusCategory?.key ?? "",
     record: i.properties?.["proof-of-done"] ?? null,
-    override: i.properties?.[OVERRIDE] ?? null,
   }));
 }
 

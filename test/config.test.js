@@ -75,3 +75,10 @@ test("a project with the key DEMO uses the public demo repository unless an admi
   assert.equal(repoFor({ defaultRepo: "acme/shop", projects: { DEMO: "acme/demo" } }, "DEMO-1"), "acme/demo");
   assert.equal(repoFor({ defaultRepo: "acme/shop", projects: {} }, "SHOP-1"), "acme/shop");
 });
+
+test("settings changes need Jira admin permission, checked as the person, not only the page they came from", async () => {
+  const { jiraAdminRefusal } = await import("../src/lib/config.js");
+  assert.equal(jiraAdminRefusal({ permissions: { ADMINISTER: { havePermission: true } } }), null);
+  assert.match(jiraAdminRefusal({ permissions: { ADMINISTER: { havePermission: false } } }), /Jira admin/);
+  assert.match(jiraAdminRefusal(null), /Jira admin/);
+});

@@ -2,8 +2,8 @@
 // lists a team lead needs: what is blocked now, which test shortcuts were caught, and who overrode what, and why.
 
 /**
- * issues: [{ key, summary, status, statusCategory, record, override }] where `record` is the saved check
- * (see record.js) and `override` the saved override property, both possibly missing.
+ * issues: [{ key, summary, status, statusCategory, record }] where `record` is the saved check (see record.js),
+ * possibly missing. `override` is only set by older tests; overrides now come from the saved record.
  */
 export function summarize(issues) {
   const checked = issues.filter((i) => i.record);
