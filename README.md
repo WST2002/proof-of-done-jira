@@ -2,9 +2,9 @@
 
 **A free Jira app that blocks Done when a pull request weakened its tests to get green CI.**
 
-[![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/-1pz_HvDxQo)
+[![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/7nrTWx5FCHo)
 
-▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/-1pz_HvDxQo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project)
+▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/7nrTWx5FCHo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project)
 
 ## The problem, in one line of code
 
@@ -80,6 +80,8 @@ A project admin or a Jira admin can press **Wrong block? Override** on the work 
 
 The four pull requests are HONEST, WEAKENED ASSERTION, SKIPPED TEST and GREEN AFTER WEAKENING. All four are merged with green CI; only the honest one is really done.
 
+**Checked on a brand-new site.** On 14 Nov 2026 these steps were run exactly as written on a new Jira developer site: no GitHub token and no repository setting. DEMO-1 moved to Done. DEMO-2, DEMO-3 and DEMO-4 were blocked, each with the file and line of the changed test. A token is optional for the demo, because GitHub allows 60 requests an hour without one.
+
 ## Ask it from an AI agent (MCP and Rovo)
 
 Three read-only tools are available to Rovo agents and to external MCP clients such as Claude Code:
@@ -97,6 +99,20 @@ claude mcp add --transport http proof-of-done https://mcp.atlassian.com/forge/48
 ```
 
 Or try it from this repository: `npm run mcp-check -- DEMO-2 DEMO-4`. It prints a sign-in link, and after you press **Accept** it lists the tools and calls each one for the keys you gave.
+
+What a client gets back for DEMO-2 (real output, shortened; also shown in the [demo video at 2:54](https://youtu.be/7nrTWx5FCHo?t=174)):
+
+```text
+> get-test-evidence DEMO-2
+test/cart.test.js:19  weakened: replaces an exact assertion with a weaker one
+before: assert.equal(roundPrice(10.456), 10.46);
+after:  assert.ok(roundPrice(10.456));
+
+> get-test-timeline DEMO-2
+commit 5798261 "DEMO-2: round prices down": CI passed. CI turned green here, after the tests were changed to pass.
+```
+
+The Rovo agent (**Proof of Done**) calls the same three actions on sites that have Rovo. Free and developer sites do not include Rovo, so the demo uses an MCP client.
 
 ## Setup for your own project
 
@@ -136,6 +152,8 @@ forge install
 2. In Bitbucket: **Workspace settings → Custom merge checks**, and turn custom merge checks on.
 3. In the repository: **Repository settings → Custom merge checks → Add**, choose **Proof of Done**.
 4. Open or update a pull request. On Bitbucket Premium the check can be made required, so the merge button stays locked until it passes. On Bitbucket Free it shows on the pull request as a warning and the merge button stays available.
+
+See it on a real pull request in the [demo video at 3:05](https://youtu.be/7nrTWx5FCHo?t=185).
 
 ## Tests
 
