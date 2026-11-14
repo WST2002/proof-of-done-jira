@@ -2,9 +2,9 @@
 
 **A free Jira app that blocks Done when a pull request weakened its tests to get green CI.**
 
-[![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/7nrTWx5FCHo)
+[![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/1SK-aSDd0xo)
 
-▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/7nrTWx5FCHo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project)
+▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/1SK-aSDd0xo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project)
 
 ## The problem, in one line of code
 
@@ -100,7 +100,7 @@ claude mcp add --transport http proof-of-done https://mcp.atlassian.com/forge/48
 
 Or try it from this repository: `npm run mcp-check -- DEMO-2 DEMO-4`. It prints a sign-in link, and after you press **Accept** it lists the tools and calls each one for the keys you gave.
 
-What a client gets back for DEMO-2 (real output, shortened; also shown in the [demo video at 2:54](https://youtu.be/7nrTWx5FCHo?t=174)):
+What a client gets back for DEMO-2 (real output, shortened; also shown in the [demo video at 2:54](https://youtu.be/1SK-aSDd0xo?t=174)):
 
 ```text
 > get-test-evidence DEMO-2
@@ -136,7 +136,7 @@ The app adds a Rovo agent called **Proof of Done**. It uses the same three tools
 
 If the agent does not show up right after installing, wait a few minutes: a newly installed Forge agent can take a short while to appear in Rovo.
 
-Tested on 14 November 2026 on a Forge demo site with Rovo: the five questions above gave the answers shown.
+Tested on 14 November 2026 on a Forge demo site with Rovo: the five questions above gave the answers shown. It is also shown in the [demo video at 3:19](https://youtu.be/1SK-aSDd0xo?t=199).
 
 ## Setup for your own project
 
@@ -177,7 +177,7 @@ forge install
 3. In the repository: **Repository settings → Custom merge checks → Add**, choose **Proof of Done**.
 4. Open or update a pull request. On Bitbucket Premium the check can be made required, so the merge button stays locked until it passes. On Bitbucket Free it shows on the pull request as a warning and the merge button stays available.
 
-See it on a real pull request in the [demo video at 3:05](https://youtu.be/7nrTWx5FCHo?t=185).
+See it on a real pull request in the [demo video at 3:06](https://youtu.be/1SK-aSDd0xo?t=186).
 
 ## Tests
 
