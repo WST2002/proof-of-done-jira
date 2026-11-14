@@ -112,7 +112,27 @@ after:  assert.ok(roundPrice(10.456));
 commit 5798261 "DEMO-2: round prices down": CI passed. CI turned green here, after the tests were changed to pass.
 ```
 
-The Rovo agent (**Proof of Done**) calls the same three actions on sites that have Rovo. Free and developer sites do not include Rovo, so the demo uses an MCP client.
+### In Rovo chat
+
+The app adds a Rovo agent called **Proof of Done**. It uses the same three tools, so it gives the same answers, with the same Jira permissions as the person asking.
+
+<p align="center"><img src="media/rovo-agent.png" alt="Rovo chat: @Proof of Done Is DEMO-2 really done? The agent answers that DEMO-2 is not done yet: in PR #2, test/cart.test.js line 19 replaced an exact assertion with a weaker one, with the assertion before and after." width="420"></p>
+
+1. Use a Jira site that has Rovo. Rovo is part of the Standard, Premium and Enterprise plans; free sites and the free developer sites do not include it. To try it for free, a Forge developer can create a demo site that includes Rovo with `forge site provision`, then install with `forge install --demo-site`.
+2. Install Proof of Done and set up the DEMO project as in [Try it in a few minutes](#try-it-in-a-few-minutes).
+3. In Jira, press **Ask Rovo** at the top right. Rovo chat opens on the side.
+4. Type `@Proof` and pick **Proof of Done** from the list (it is under **Agents**). You can also open it from Rovo chat → **Agents**.
+5. Ask in plain words, for example:
+   - `Is DEMO-2 really done?` → "DEMO-2 is not done yet", with the file, the line, the assertion before and after, and what to fix.
+   - `Is DEMO-1 really done?` → yes: the pull request is merged, its checks passed, and the tests were kept honest.
+   - `Which commit turned CI green for DEMO-4?` → commit `a03b524`, right after the test was weakened.
+   - `Show me the test evidence for DEMO-2.`
+   - The suggested starters also work: *Is this work item really done?*, *What is blocking this from Done?*, *Which commit turned CI green?*
+6. A key that does not exist, or that you cannot see in Jira, gets a plain "not found" answer.
+
+If the agent does not show up right after installing, wait a few minutes: a newly installed Forge agent can take a short while to appear in Rovo.
+
+Tested on 14 November 2026 on a Forge demo site with Rovo: the five questions above gave the answers shown.
 
 ## Setup for your own project
 
