@@ -9,6 +9,7 @@ import { planSetup } from "./lib/setup.js";
 import { verdict } from "./lib/verdict.js";
 import { receipt, afterDoneNote, overrideNote } from "./lib/receipt.js";
 import { overrideFor, checkReason } from "./lib/override.js";
+import { afterDone } from "./lib/trigger.js";
 import { checkRecord } from "./lib/record.js";
 import { summarize, byProject } from "./lib/dashboard.js";
 import { fixTask, pickIssueType } from "./lib/fixtask.js";
@@ -90,13 +91,15 @@ export async function onIssueUpdated(event) {
   const toDone = event.issue.fields?.status?.statusCategory?.key === "done" || /^done$/i.test(moved?.toString ?? "");
   if (!key || !moved || !toDone) return;
   const v = await check(key);
+  const action = afterDone(v);
+  if (!action) return;
   // One receipt per checked state: a repeated event for the same commits does not post it twice.
   const stamp = `receipt:${v.done}:${(v.prs ?? []).map((p) => p.sha).join(",")}`;
   const seen = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done-receipt`, { headers: { Accept: "application/json" } });
   if (seen.ok && (await seen.json()).value?.stamp === stamp) return;
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/proof-of-done-receipt`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stamp }) });
   // If the work changed between the move and this check, say so on the work item instead of staying silent.
-  const body = v.done ? receipt(v) : afterDoneNote(v);
+  const body = action === "receipt" ? receipt(v) : afterDoneNote(v);
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
