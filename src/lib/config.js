@@ -63,3 +63,6 @@ export const hostOf = (repo) => (repo.startsWith("bitbucket:") ? "Bitbucket" : "
 // module key comes from Forge's signed context, so the issue panel cannot call these resolvers.
 export const ADMIN_MODULE = "proof-of-done-admin";
 export const adminOnly = (context) => (context?.moduleKey === ADMIN_MODULE || context?.extension?.type === "jira:adminPage" ? null : "This can be changed only from the Proof of Done settings page (Jira admins).");
+
+/** Refusal unless Jira's own permission check (asked as the person) says they are a Jira admin. Fails closed. */
+export const jiraAdminRefusal = (perms) => (perms?.permissions?.ADMINISTER?.havePermission ? null : "Only a Jira admin can change Proof of Done settings.");
