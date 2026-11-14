@@ -87,10 +87,11 @@ export async function validate({ issue }) {
 
 // When a work item moves to Done, leave the evidence behind "done" as a comment, so it stays with the work item.
 export async function onIssueUpdated(event) {
-  const moved = (event?.changelog?.items ?? []).find((i) => i.field === "status");
   const key = event?.issue?.key;
-  const toDone = event.issue.fields?.status?.statusCategory?.key === "done" || /^done$/i.test(moved?.toString ?? "");
-  if (!key || !moved || !toDone) return;
+  const moved = (event?.changelog?.items ?? []).find((i) => i.field === "status");
+  if (!key || !moved) return;
+  const toDone = event.issue.fields?.status?.statusCategory?.key === "done" || /^done$/i.test(moved.toString ?? "");
+  if (!toDone) return;
   const v = await check(key);
   const action = afterDone(v);
   if (!action) return;
@@ -119,7 +120,8 @@ export async function checkDone(payload) {
   const key = issueKeyOf(payload);
   const missing = await unseen(key);
   if (missing) return missing;
-  const v = await check(key);
+  // A read-only (GET) action: it checks but saves nothing on the work item.
+  const v = await evaluate(key);
   return { issueKey: key, done: v.done, message: v.message, problems: v.problems, pullRequests: v.prs };
 }
 
@@ -128,7 +130,7 @@ export async function getTestEvidence(payload) {
   const key = issueKeyOf(payload);
   const missing = await unseen(key);
   if (missing) return missing;
-  const v = await check(key);
+  const v = await evaluate(key);
   const evidence = (v.problems ?? []).flatMap((p) => (p.evidence ?? []).map((e) => ({ pr: p.pr, ...e })));
   return { issueKey: key, done: v.done, summary: evidence.length ? `${evidence.length} change(s) make the tests prove less.` : v.message, evidence, headsUp: (v.warnings ?? []).map((w) => w.text) };
 }
