@@ -18,7 +18,8 @@ import { parseRepos, formatRepos, repoFor, skipReason, checkSkipLabel, DEFAULT_S
 const CONFIG = "config";
 const TOKEN = "github-token";
 const BB_TOKEN = "bitbucket-token";
-const OVERRIDE = "proof-of-done-override";
+// Overrides live in app storage (only this app can write it), keyed by work item.
+const overrideKey = (key) => `override:${key}`;
 const FIX = "proof-of-done-fix";
 
 async function settings() {
@@ -71,8 +72,8 @@ async function evaluate(key) {
     const v = { ...verdict(prs, { skipLabel }), repo, prs: prs.map(({ number, url, merged, checks, files, ai, sha }) => ({ number, url, merged, checks, files: files.length, ai, sha })) };
     if (v.done) return v;
     // A project admin's recorded override lets this work item through, but only for the commits it was given for.
-    const saved = await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${OVERRIDE}`, { headers: { Accept: "application/json" } });
-    const overridden = saved.ok ? overrideFor((await saved.json()).value, v.prs) : null;
+    // Read from app storage, never from an issue property: anyone who can edit a work item can write its properties.
+    const overridden = overrideFor(await kvs.get(overrideKey(key)), v.prs);
     return overridden ? { ...v, done: true, overridden, message: `Done by a recorded override. Reason: ${overridden.reason}` } : v;
   } catch (e) {
     return { done: false, repo, prs: [], problems: [], message: `Could not check ${hostOf(repo)}, so Done is blocked for now: ${e.message}` };
@@ -189,7 +190,7 @@ resolver.define("override", async ({ payload, context }) => {
   if (v.done) return { ok: false, message: "Nothing to override: the check passes." };
   if (!v.prs.length) return { ok: false, message: "Nothing to override: no pull request is linked. Use the no-code label for work without code." };
   const saved = { accountId: context.accountId, at: new Date().toISOString(), reason: String(payload.reason).trim(), shas: v.prs.map((p) => p.sha) };
-  await api.asApp().requestJira(route`/rest/api/3/issue/${key}/properties/${OVERRIDE}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(saved) });
+  await kvs.set(overrideKey(key), saved);
   await api.asApp().requestJira(route`/rest/api/3/issue/${key}/comment`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -232,7 +233,7 @@ resolver.define("fixTask", async ({ context }) => {
 
 // The project dashboard and the settings page read the saved check of the most recently updated work items.
 // The search runs as the viewer, so nobody sees a work item Jira would hide from them.
-const PROPERTIES = ["proof-of-done", OVERRIDE];
+const PROPERTIES = ["proof-of-done"];
 async function recentIssues(as, jql) {
   const res = await jiraAs(as, route`/rest/api/3/search/jql`, { method: "POST", body: JSON.stringify({ jql, maxResults: 100, fields: ["summary", "status"], properties: PROPERTIES }) });
   return (res.issues ?? []).map((i) => ({
@@ -241,7 +242,6 @@ async function recentIssues(as, jql) {
     status: i.fields?.status?.name ?? "",
     statusCategory: i.fields?.status?.statusCategory?.key ?? "",
     record: i.properties?.["proof-of-done"] ?? null,
-    override: i.properties?.[OVERRIDE] ?? null,
   }));
 }
 
