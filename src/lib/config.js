@@ -50,7 +50,7 @@ export function skipReason(labels, skipLabel) {
 
 /** A problem with the admin's skip label, or null. Jira labels cannot contain spaces. */
 export function checkSkipLabel(label) {
-  return /\s/.test(label ?? "") ? `The label "${label}" has spaces; Jira labels are single words like no-code.` : null;
+  return /\s/.test(label ?? "") ? `Invalid label "${label}".` : null;
 }
 
 // The work item key a Rovo or MCP caller asked about, however they typed it.
