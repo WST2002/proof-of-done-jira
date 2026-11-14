@@ -69,18 +69,18 @@ A project admin or a Jira admin can press **Wrong block? Override** on the work 
 1. [Install Proof of Done for Jira](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira) on your site (choose your site, then **Get app**).
 2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). No repository setting needed: a DEMO project reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
 3. Jira settings → Apps → **Proof of Done settings** → **Turn it on for a project** → DEMO → **Apply**.
-4. Move each work item to Done:
+4. Move each work item to Done. A blocked move shows an error with the reason. Once a work item's Proof of Done panel has checked it, **Done disappears** from its transition menu until the problem is fixed, and the panel says why.
 
 | Work item | Pull request | What happens |
 |---|---|---|
 | DEMO-1 | adds a discount and a test for the exact new value | moves to Done and gets an audit receipt |
-| DEMO-2 | changes rounding and loosens the test to `assert.ok` | blocked: an exact assertion was weakened, with file and line |
-| DEMO-3 | changes free shipping and skips its test | blocked: a test was skipped |
-| DEMO-4 | first commit fails CI, second loosens the test and CI goes green | blocked; **Show test timeline** points at the commit where CI turned green |
+| DEMO-2 | changes rounding and loosens the test to `assert.ok` | blocked (or Done hidden): an exact assertion was weakened, with file and line |
+| DEMO-3 | changes free shipping and skips its test | blocked (or Done hidden): a test was skipped |
+| DEMO-4 | first commit fails CI, second loosens the test and CI goes green | blocked (or Done hidden); **Show test timeline** points at the commit where CI turned green |
 
 The four pull requests are HONEST, WEAKENED ASSERTION, SKIPPED TEST and GREEN AFTER WEAKENING. All four are merged with green CI; only the honest one is really done.
 
-**Checked on a brand-new site.** On 14 Nov 2026 these steps were run exactly as written on a new Jira developer site: no GitHub token and no repository setting. DEMO-1 moved to Done. DEMO-2, DEMO-3 and DEMO-4 were blocked, each with the file and line of the changed test. A token is optional for the demo, because GitHub allows 60 requests an hour without one.
+**Checked on a brand-new site.** On 14 Nov 2026 these steps were run exactly as written on a new Jira developer site: no GitHub token and no repository setting. DEMO-1 moved to Done. DEMO-2, DEMO-3 and DEMO-4 were blocked, each with the file and line of the changed test. No token is needed for the demo: the app has its own read-only GitHub token for public repositories (the settings page shows which GitHub access the checks use). The optional Bitbucket demo reads public Bitbucket data without a token, which Bitbucket limits per hour.
 
 ## Ask it from an AI agent (MCP and Rovo)
 
@@ -210,7 +210,7 @@ Every block names the file and line, so a person can always see why.
 
 - Proof of Done stores its settings: the GitHub or Bitbucket repository for each Jira project, an optional label for work that needs no code, and optional GitHub and Bitbucket tokens, which are kept encrypted in Forge storage.
 - When a work item is checked, it sends the work item key and the repository name to the GitHub or Bitbucket API, and reads pull request titles, branch names, changed files, diffs, commits and CI results. Nothing from GitHub or Bitbucket is stored, except the last check result (passed or not, the problems found, and the file and line of each caught test change), which is saved on the work item so the Done condition and the project page can read it.
-- It stores no personal data and sends nothing to any other service.
+- When an admin overrides a block, it stores that admin's Atlassian account ID, the reason and the time in Forge app storage, so the work item shows who overrode it. It stores no other personal data and sends nothing to any other service.
 
 ## Support
 
