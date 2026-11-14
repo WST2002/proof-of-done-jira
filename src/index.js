@@ -2,7 +2,7 @@
 import api, { route } from "@forge/api";
 import { kvs } from "@forge/kvs";
 import resolverModule from "@forge/resolver";
-import { linkedPullRequests, githubCommitHistory, pullMentions } from "./lib/github.js";
+import { linkedPullRequests, githubCommitHistory, pullMentions, githubAccess } from "./lib/github.js";
 import { linkedBitbucketPullRequests, bitbucketCommitHistory, bitbucketPullMentions } from "./lib/bitbucket.js";
 import { buildTimeline } from "./lib/timeline.js";
 import { planSetup } from "./lib/setup.js";
@@ -281,6 +281,10 @@ resolver.define("overview", admin(async () => {
     return { ok: false, message: e.message };
   }
 }));
+
+resolver.define("githubAccess", admin(async () =>
+  githubAccess({ fetch: api.fetch, tokens: [["your saved token", await kvs.getSecret(TOKEN)], ["the app's built-in token", process.env.GITHUB_TOKEN]] })
+));
 
 resolver.define("getSettings", admin(async () => {
   const { config, skipLabel } = await settings();

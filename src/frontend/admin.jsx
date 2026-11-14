@@ -97,6 +97,22 @@ function Overview() {
   );
 }
 
+// Which GitHub access the checks really get, so an expired token or the 60-an-hour anonymous limit is visible before it blocks anyone.
+function GithubAccess({ refresh }) {
+  const [a, setA] = useState(null);
+  useEffect(() => {
+    invoke("githubAccess").then(setA).catch(() => setA(null));
+  }, [refresh]);
+  if (!a) return null;
+  return a.source === "none" ? (
+    <SectionMessage appearance="warning" title="GitHub: no working token">
+      <Text>{`Checks read GitHub without a token, limited to ${a.limit} requests an hour. Add a read-only token above so checks keep working on busy days.`}</Text>
+    </SectionMessage>
+  ) : (
+    <HelperMessage>{`GitHub access: ${a.source}, ${a.limit.toLocaleString("en-US")} requests an hour (${a.remaining.toLocaleString("en-US")} left now).`}</HelperMessage>
+  );
+}
+
 function Admin() {
   const [repos, setRepos] = useState(null);
   const [token, setToken] = useState("");
@@ -160,6 +176,7 @@ function Admin() {
         <Label labelFor="token">GitHub token (optional)</Label>
         <Textfield id="token" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder={hasToken ? "A token is saved. Type a new one to replace it." : "Paste a read-only token"} />
         <HelperMessage>Needed for private repositories, and recommended for public ones: GitHub allows only 60 requests an hour without one. A fine-grained token with read-only access to the repositories is enough. It is stored encrypted and never shown again.</HelperMessage>
+        <GithubAccess refresh={saved} />
       </Stack>
 
       <Stack space="space.100">
