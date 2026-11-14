@@ -112,6 +112,10 @@ after:  assert.ok(roundPrice(10.456));
 commit 5798261 "DEMO-2: round prices down": CI passed. CI turned green here, after the tests were changed to pass.
 ```
 
+### Skill file for AI agents
+
+[`skills/proof-of-done-mcp/SKILL.md`](skills/proof-of-done-mcp/SKILL.md) is an open-source skill that tells an AI agent when to call each tool and how to answer: the verdict first, the evidence quoted, never "done" unless `check-done` says so. Add it to an agent that supports skills (for example, copy the folder into `.claude/skills/` for Claude Code) together with the MCP server above.
+
 ### In Rovo chat
 
 The app adds a Rovo agent called **Proof of Done**. It uses the same three tools, so it gives the same answers, with the same Jira permissions as the person asking.
