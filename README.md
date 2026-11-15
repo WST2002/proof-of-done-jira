@@ -20,8 +20,8 @@
 
 <p align="center">
   ▶️ <a href="https://youtu.be/1SK-aSDd0xo"><b>Watch the 4-minute demo</b></a> &nbsp;·&nbsp;
-  🚀 <a href="#try-it-in-a-few-minutes"><b>Try it in 5 minutes</b></a> &nbsp;·&nbsp;
-  ⚙️ <a href="#setup-for-your-own-project">Set it up</a> &nbsp;·&nbsp;
+  ⚙️ <a href="#use-it-on-your-own-project"><b>Use it on your project</b></a> &nbsp;·&nbsp;
+  🚀 <a href="#or-try-the-demo-first-5-minutes">Try the demo</a> &nbsp;·&nbsp;
   🤖 <a href="#in-rovo-chat">Ask Rovo</a> &nbsp;·&nbsp;
   📖 <a href="https://dev.to/wst2002rk/jira-said-done-it-wasnt-and-the-bug-showed-up-later-so-i-made-jira-check-first-9ed">Read the story</a>
 </p>
@@ -100,10 +100,42 @@ The rules are the same ones used by [proof-of-done](https://github.com/WST2002/c
 
 A project admin or a Jira admin can press **Wrong block? Override** on the work item and give a reason. Proof of Done checks that permission, posts the reason with the admin's name on the work item, and lets that work item through. The override covers only the commits that were checked: a new commit to any linked pull request makes the check run again.
 
-## Try it in a few minutes
+## Use it on your own project
+
+You need to be a Jira admin on the site. Nothing is downloaded or installed on your computer. Want to see it working before you connect anything? [Try the demo first](#or-try-the-demo-first-5-minutes): a ready-made DEMO project, no repository needed.
+
+1. **Install the app.** Open the [installation link](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira), choose your Jira site and press **Get app**.
+2. **Open the settings.** In Jira: **Jira settings (gear icon) → Apps → Proof of Done settings**.
+3. **Add your repository** in the **Repositories** box, one line per Jira project, written `KEY=repository`:
+   - `KEY` is your Jira project key: the letters at the start of every work item. In `SHOP-12` the key is `SHOP`.
+   - For GitHub, the repository is `owner/name` from its address: `github.com/acme/shop` → `SHOP=acme/shop`.
+   - For Bitbucket Cloud, write `bitbucket:workspace/name`: `bitbucket.org/acme/shop` → `SHOP=bitbucket:acme/shop`.
+   - A line without `KEY=` is used for every project that has no line of its own.
+4. **Add a token if you need one** (same page), then press **Save**. Tokens are stored encrypted and never shown again.
+   - **GitHub:** needed for private repositories, and recommended for public ones (GitHub allows only 60 requests an hour without a token). On GitHub: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Choose only the repositories you use, and give read-only access to Contents, Pull requests, Commit statuses and Actions. For public repositories, "Public repositories" access is enough. Pick an expiry date far enough ahead.
+   - **Bitbucket Cloud:** needed for private repositories. Create an API token for your Atlassian account with read access to repositories and pull requests, and enter it as `email:api-token`.
+5. **Turn it on for a project.** On the same page, under **Turn it on for a project**, pick the project. Proof of Done previews which transitions into Done get its validator and condition; nothing changes until you press **Apply**.
+   - Team-managed projects: open the project's settings → **Workflow**, select the transition into Done and add the **Proof of Done** rule there.
+6. **Link your pull requests.** Put the work item key in the pull request title or branch name, for example `SHOP-12: fix checkout total` or branch `SHOP-12-checkout`.
+7. **Work with no code** (design, research, a meeting): add the label `no-code` to the work item and it moves to Done without a pull request. You can rename that label on the settings page.
+
+<p align="center"><img src="media/shot-settings.png" alt="Proof of Done settings in Jira: one line per Jira project, written KEY=repository" width="760"></p>
+
+Every work item now shows a **Proof of Done** box, and each project has a **Proof of Done dashboard** tab.
+
+**Or deploy your own copy** with Node.js 22 and the Forge CLI:
+
+```bash
+npm install
+forge register
+forge deploy
+forge install
+```
+
+### Or try the demo first (5 minutes)
 
 1. [Install Proof of Done for Jira](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira) on your site (choose your site, then **Get app**).
-2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). No repository setting needed: a DEMO project reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
+2. Create a company-managed project with the key **DEMO** and four work items (DEMO-1 to DEMO-4). Nothing to connect: a project with the key DEMO reads the public [demo repository](https://github.com/WST2002/proof-of-done-demo).
 3. Jira settings → Apps → **Proof of Done settings** → **Turn it on for a project** → DEMO → **Apply**.
 4. Move each work item to Done. A blocked move shows an error with the reason. Once a work item's Proof of Done panel has checked it, **Done disappears** from its transition menu until the problem is fixed, and the panel says why.
 
@@ -159,7 +191,7 @@ The app adds a Rovo agent called **Proof of Done**. It uses the same three tools
 <p align="center"><img src="media/rovo-agent.png" alt="Rovo chat: @Proof of Done Is DEMO-2 really done? The agent answers that DEMO-2 is not done yet: in PR #2, test/cart.test.js line 19 replaced an exact assertion with a weaker one, with the assertion before and after." width="420"></p>
 
 1. Use a Jira site that has Rovo. Rovo is part of the Standard, Premium and Enterprise plans; free sites and the free developer sites do not include it. To try it for free, a Forge developer can create a demo site that includes Rovo with `forge site provision`, then install with `forge install --demo-site`.
-2. Install Proof of Done and set up the DEMO project as in [Try it in a few minutes](#try-it-in-a-few-minutes).
+2. Install Proof of Done and set up the DEMO project as in [Or try the demo first](#or-try-the-demo-first-5-minutes).
 3. In Jira, press **Ask Rovo** at the top right. Rovo chat opens on the side.
 4. Type `@Proof` and pick **Proof of Done** from the list (it is under **Agents**). You can also open it from Rovo chat → **Agents**.
 5. Ask in plain words, for example:
@@ -173,38 +205,6 @@ The app adds a Rovo agent called **Proof of Done**. It uses the same three tools
 If the agent does not show up right after installing, wait a few minutes: a newly installed Forge agent can take a short while to appear in Rovo.
 
 Tested on 14 November 2026 on a Forge demo site with Rovo: the five questions above gave the answers shown. It is also shown in the [demo video at 3:19](https://youtu.be/1SK-aSDd0xo?t=199).
-
-## Setup for your own project
-
-You need to be a Jira admin on the site. Nothing is downloaded or installed on your computer.
-
-1. **Install the app.** Open the [installation link](https://developer.atlassian.com/console/install/487a9b05-d2bc-4e8f-98ce-2c533e95676f?signature=AYABeLyYHAf3L0Qs27bv3Z4tZGYAAAADAAdhd3Mta21zAEthcm46YXdzOmttczp1cy13ZXN0LTI6NzA5NTg3ODM1MjQzOmtleS83MDVlZDY3MC1mNTdjLTQxYjUtOWY5Yi1lM2YyZGNjMTQ2ZTcAuAECAQB4CxqLTo9l4lqXuFjNim1xJM%2Bp%2F3TVP9xHS2BrU5DRRucBxXFnmAqMkSCyl6leOTM7vgAAAH4wfAYJKoZIhvcNAQcGoG8wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDJqZCVzW%2FRJw46Tz%2FQIBEIA7KpCT9ZAQwFJsiwTrSbSKKgdRQWmd%2FjUuSXbGYWf2JKynvqBa%2F6pgANm%2BkirVwQ87I84ioBd6pe1JkcEAB2F3cy1rbXMAS2Fybjphd3M6a21zOmV1LXdlc3QtMTo3MDk1ODc4MzUyNDM6a2V5LzQ2MzBjZTZiLTAwYzMtNGRlMi04NzdiLTYyN2UyMDYwZTVjYwC4AQICAHi9bVMAkme4qVQX1fQHo6ePw3H40A7cGfz7yrmSfBWMXgHzrqE7iuvRTZcycSDL2vL%2BAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMYTwAiUE9gVwinAxTAgEQgDtCr1tNBFtw8PO6nP%2BYM4Mj2FAxgXzP2tuvr1UHfYqaQDskqtHZB8zGjxZpadCx1rcIhwf0ABZcFLYGhAAHYXdzLWttcwBLYXJuOmF3czprbXM6dXMtZWFzdC0xOjcwOTU4NzgzNTI0MzprZXkvNmMxMjBiYTAtNGNkNS00OTg1LWI4MmUtNDBhMDQ5NTJjYzU3ALgBAgIAeDYASx0XCjkny4iLV6vz%2BKtEGSGT6kdt0QRpkn6D%2FlVEAV3faaMp3F5mck34LGGuVGMAAAB%2BMHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAxGhCxxWC6o0pXlPaYCARCAOy4FJhD2J%2FQANeRhmYUO4jYqEJlO75s%2FjAmcHkBWRSuvXa92N96t2FuQxly5jqyCs%2BF7NjAN8IvIR%2FhlAgAAAAAMAAAQAAAAAAAAAAAAAAAAALVIl5LUghVGwavqcP55yxH%2F%2F%2F%2F%2FAAAAAQAAAAAAAAAAAAAAAQAAADK99sYebOv93AEzsLX4dWYBUbD%2B%2Fu17vEQkU3HAUr3Joqfo8yyUG%2FsSXoLFX4uKG0hv7DVa%2FFg6ocDIbB3mnr2uJn0%3D&product=jira), choose your Jira site and press **Get app**.
-2. **Open the settings.** In Jira: **Jira settings (gear icon) → Apps → Proof of Done settings**.
-3. **Add your repository** in the **Repositories** box, one line per Jira project, written `KEY=repository`:
-   - `KEY` is your Jira project key: the letters at the start of every work item. In `SHOP-12` the key is `SHOP`.
-   - For GitHub, the repository is `owner/name` from its address: `github.com/acme/shop` → `SHOP=acme/shop`.
-   - For Bitbucket Cloud, write `bitbucket:workspace/name`: `bitbucket.org/acme/shop` → `SHOP=bitbucket:acme/shop`.
-   - A line without `KEY=` is used for every project that has no line of its own.
-4. **Add a token if you need one** (same page), then press **Save**. Tokens are stored encrypted and never shown again.
-   - **GitHub:** needed for private repositories, and recommended for public ones (GitHub allows only 60 requests an hour without a token). On GitHub: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Choose only the repositories you use, and give read-only access to Contents, Pull requests, Commit statuses and Actions. For public repositories, "Public repositories" access is enough. Pick an expiry date far enough ahead.
-   - **Bitbucket Cloud:** needed for private repositories. Create an API token for your Atlassian account with read access to repositories and pull requests, and enter it as `email:api-token`.
-5. **Turn it on for a project.** On the same page, under **Turn it on for a project**, pick the project. Proof of Done previews which transitions into Done get its validator and condition; nothing changes until you press **Apply**.
-   - Team-managed projects: open the project's settings → **Workflow**, select the transition into Done and add the **Proof of Done** rule there.
-6. **Link your pull requests.** Put the work item key in the pull request title or branch name, for example `SHOP-12: fix checkout total` or branch `SHOP-12-checkout`.
-7. **Work with no code** (design, research, a meeting): add the label `no-code` to the work item and it moves to Done without a pull request. You can rename that label on the settings page.
-
-<p align="center"><img src="media/shot-settings.png" alt="Proof of Done settings in Jira: one line per Jira project, written KEY=repository" width="760"></p>
-
-Every work item now shows a **Proof of Done** box, and each project has a **Proof of Done dashboard** tab.
-
-**Or deploy your own copy** with Node.js 22 and the Forge CLI:
-
-```bash
-npm install
-forge register
-forge deploy
-forge install
-```
 
 ## Catch it before merge (Bitbucket)
 
