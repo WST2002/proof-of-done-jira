@@ -22,9 +22,13 @@ function Tile({ value, label, tag, appearance }) {
   );
 }
 
-const CARD = xcss({ borderRadius: "border.radius.200", boxShadow: "elevation.shadow.raised", minWidth: "size.1000" });
+// Tiles grow to share each row evenly, so they line up on phones as well as on wide screens.
+const CARD = xcss({ borderRadius: "border.radius.200", boxShadow: "elevation.shadow.raised", minWidth: "size.1000", flexGrow: "1" });
 const PANEL = xcss({ borderRadius: "border.radius.200", boxShadow: "elevation.shadow.raised" });
-const head = (...cells) => ({ cells: cells.map(([key, content]) => ({ key, content })) });
+// The chart card takes the full width on a phone and about half the row on a wide screen.
+const CHART = xcss({ borderRadius: "border.radius.200", boxShadow: "elevation.shadow.raised", width: "100%", maxWidth: "460px" });
+// [key, title, width%]: the work item column is wide enough that a key like DEMO-3 stays on one line.
+const head = (...cells) => ({ cells: cells.map(([key, content, width]) => ({ key, content, ...(width ? { width } : {}) })) });
 // Jira's own status colours: green ready, red blocked, blue override, grey no code.
 const COLORS = { ready: "#1F845A", blocked: "#C9372C", overridden: "#0C66E4", noCode: "#8590A2" };
 
@@ -71,8 +75,8 @@ function Dashboard() {
 
       <Inline space="space.200" shouldWrap alignBlock="stretch">
         {split.length ? (
-          <Box padding="space.200" backgroundColor="elevation.surface.raised" xcss={PANEL}>
-            <DonutChart data={split} colorAccessor="result" valueAccessor="count" labelAccessor="result" title="Results of the last checks" width={420} height={300} showMarkLabels showBorder={false} hideMenu colorPalette={split.map((r) => ({ key: r.result, value: r.color }))} />
+          <Box padding="space.200" backgroundColor="elevation.surface.raised" xcss={CHART}>
+            <DonutChart data={split} colorAccessor="result" valueAccessor="count" labelAccessor="result" title="Results of the last checks" height={300} showMarkLabels showBorder={false} hideMenu colorPalette={split.map((r) => ({ key: r.result, value: r.color }))} />
           </Box>
         ) : null}
         <Box padding="space.200" backgroundColor="elevation.surface.raised" xcss={PANEL}>
@@ -98,7 +102,7 @@ function Dashboard() {
       <Stack space="space.100">
         <Heading size="medium">Blocked now</Heading>
         <DynamicTable
-          head={head(["key", "Work item"], ["summary", "Summary"], ["status", "Status"], ["why", "Why it is blocked"])}
+          head={head(["key", "Work item", 12], ["summary", "Summary"], ["status", "Status"], ["why", "Why it is blocked"])}
           rows={d.blocked.map((b) => ({ key: b.key, cells: [{ key: "key", content: keyLink(b.key) }, { key: "summary", content: b.summary }, { key: "status", content: <Lozenge>{b.status}</Lozenge> }, { key: "why", content: b.blocker || "Open the work item and press Check again to see why." }] }))}
           emptyView="Nothing is blocked. Every checked work item is ready for Done, or was let through with a reason."
           rowsPerPage={10}
@@ -108,7 +112,7 @@ function Dashboard() {
       <Stack space="space.100">
         <Heading size="medium">Tests changed to pass, caught</Heading>
         <DynamicTable
-          head={head(["key", "Work item"], ["what", "What was changed"])}
+          head={head(["key", "Work item", 12], ["what", "What was changed"])}
           rows={d.caught.map((x) => ({
             key: x.key,
             cells: [
