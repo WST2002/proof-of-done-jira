@@ -4,7 +4,7 @@
 
 A free Jira app that blocks Done when a pull request skipped, deleted or loosened a test to get green CI.
 
-[![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/1SK-aSDd0xo)
+[![Jira said Done. It wasn't. So I made Jira check first. Watch the 4-minute demo on YouTube](media/readme-poster.png)](https://youtu.be/1SK-aSDd0xo)
 
 ▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/1SK-aSDd0xo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project) · 📖 [Read the story](https://dev.to/wst2002rk/jira-said-done-it-wasnt-and-the-bug-showed-up-later-so-i-made-jira-check-first-9ed)
 
