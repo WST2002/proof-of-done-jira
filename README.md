@@ -1,6 +1,8 @@
 <h1 align="center">Proof of Done for Jira</h1>
 
-<p align="center"><b>Jira said Done. It wasn't, and the bug showed up later. So I made Jira check first.</b></p>
+<h3 align="center">A Jira App That Blocks Done When a Pull Request Weakens Its Tests</h3>
+
+<p align="center"><i>Jira said Done. It wasn't, and the bug showed up later. So I made Jira check first.</i></p>
 
 <p align="center">
   <a href="https://youtu.be/1SK-aSDd0xo"><img src="media/readme-poster.png" alt="Jira said Done. It wasn't. So I made Jira check first. Watch the 4-minute demo on YouTube" width="900"></a>
