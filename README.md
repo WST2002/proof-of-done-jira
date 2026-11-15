@@ -1,27 +1,41 @@
 # Proof of Done for Jira
 
-**A free Jira app that blocks Done when a pull request weakened its tests to get green CI.**
+**Jira said Done. It wasn't, and the bug showed up later. So I made Jira check first.**
+
+A free Jira app that blocks Done when a pull request skipped, deleted or loosened a test to get green CI.
 
 [![Watch the 4-minute demo on YouTube](media/demo-thumbnail.png)](https://youtu.be/1SK-aSDd0xo)
 
-▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/1SK-aSDd0xo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project)
+▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/1SK-aSDd0xo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project) · 📖 [Read the story](https://dev.to/wst2002rk/jira-said-done-it-wasnt-and-the-bug-showed-up-later-so-i-made-jira-check-first-9ed)
 
-## The problem, in one line of code
+## The problem
+
+Picture this. The ticket moved to Done on Friday. The pull request was merged, CI was green, everyone moved on.
+
+On Monday the checkout total was wrong.
+
+The test that should have caught it was still there. It just didn't check anything anymore. In the last commit, labelled "fix flaky test", one line had changed:
 
 ```diff
 - expect(total(cart)).toBe(90);
 + expect(total(cart)).toBeDefined();
 ```
 
-The test used to check the exact total. Now it passes for almost any value, even a wrong one. CI stays green, the pull request is merged, Jira says Done, and a few days later customers are charged the wrong total.
+The old line checked that the total is exactly 90. The new one only checks that there is *some* total. 0 passes. 900 passes. So CI went green, and Jira said Done.
 
-**Proof of Done stops that move to Done** and shows why, right on the work item. This is what it shows for DEMO-2 in the demo project:
+Nobody lied. A developer in a hurry, or an AI agent told to "make the tests pass", took the shortest road to green. In a code review it looks like a one-line tidy-up, so nobody stops it. And CI can't see it either: a skipped test doesn't fail, a deleted test doesn't fail, and a loosened check passes even more easily.
+
+## The solution: Jira checks first
+
+Before a work item can move to Done, Proof of Done reads the pull requests behind it and asks one question: **do the tests still prove what they proved before?** If a test was skipped, deleted or loosened to get green, the move is blocked, and the work item shows exactly why. This is what it shows for DEMO-2 in the demo project:
 
 > **Blocked: the tests were changed to pass**
 > `test/cart.test.js:19` replaces an exact assertion with a weaker one
 > Before: `assert.equal(roundPrice(10.456), 10.46);`
 > After: `assert.ok(roundPrice(10.456));`
 > The old line checked one exact value. The new one passes for almost any value, so a wrong result would still go green.
+
+Then one click turns the block into a fix task, team leads see every catch on a dashboard, and anyone can ask Rovo "is DEMO-2 really done?".
 
 ## How it differs
 
