@@ -1,12 +1,28 @@
-# Proof of Done for Jira
+<h1 align="center">Proof of Done for Jira</h1>
 
-**Jira said Done. It wasn't, and the bug showed up later. So I made Jira check first.**
+<p align="center"><b>Jira said Done. It wasn't, and the bug showed up later. So I made Jira check first.</b></p>
 
-A free Jira app that blocks Done when a pull request skipped, deleted or loosened a test to get green CI.
+<p align="center">
+  <a href="https://youtu.be/1SK-aSDd0xo"><img src="media/readme-poster.png" alt="Jira said Done. It wasn't. So I made Jira check first. Watch the 4-minute demo on YouTube" width="900"></a>
+</p>
 
-[![Jira said Done. It wasn't. So I made Jira check first. Watch the 4-minute demo on YouTube](media/readme-poster.png)](https://youtu.be/1SK-aSDd0xo)
+<p align="center">
+  <a href="https://github.com/WST2002/proof-of-done-jira/actions/workflows/test.yml"><img src="https://github.com/WST2002/proof-of-done-jira/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <img src="https://img.shields.io/badge/Atlassian-Forge-0052CC?logo=atlassian&logoColor=white" alt="Atlassian Forge">
+  <img src="https://img.shields.io/badge/Rovo-agent-6554C0" alt="Rovo agent">
+  <img src="https://img.shields.io/badge/MCP-3%20tools-36B37E" alt="MCP tools">
+  <img src="https://img.shields.io/badge/GitHub%20%2B%20Bitbucket-supported-172B4D" alt="GitHub and Bitbucket">
+  <img src="https://img.shields.io/badge/Codegeist-2026-FF991F" alt="Codegeist 2026">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
+</p>
 
-▶️ **[Watch the 4-minute demo on YouTube](https://youtu.be/1SK-aSDd0xo)** · [Install it](#try-it-in-a-few-minutes) · [Set it up for your project](#setup-for-your-own-project) · 📖 [Read the story](https://dev.to/wst2002rk/jira-said-done-it-wasnt-and-the-bug-showed-up-later-so-i-made-jira-check-first-9ed)
+<p align="center">
+  ▶️ <a href="https://youtu.be/1SK-aSDd0xo"><b>Watch the 4-minute demo</b></a> &nbsp;·&nbsp;
+  🚀 <a href="#try-it-in-a-few-minutes"><b>Try it in 5 minutes</b></a> &nbsp;·&nbsp;
+  ⚙️ <a href="#setup-for-your-own-project">Set it up</a> &nbsp;·&nbsp;
+  🤖 <a href="#in-rovo-chat">Ask Rovo</a> &nbsp;·&nbsp;
+  📖 <a href="https://dev.to/wst2002rk/jira-said-done-it-wasnt-and-the-bug-showed-up-later-so-i-made-jira-check-first-9ed">Read the story</a>
+</p>
 
 ## The problem
 
@@ -27,15 +43,19 @@ Nobody lied. A developer in a hurry, or an AI agent told to "make the tests pass
 
 ## The solution: Jira checks first
 
-Before a work item can move to Done, Proof of Done reads the pull requests behind it and asks one question: **do the tests still prove what they proved before?** If a test was skipped, deleted or loosened to get green, the move is blocked, and the work item shows exactly why. This is what it shows for DEMO-2 in the demo project:
+Before a work item can move to Done, Proof of Done reads the pull requests behind it and asks one question: **do the tests still prove what they proved before?**
 
-> **Blocked: the tests were changed to pass**
-> `test/cart.test.js:19` replaces an exact assertion with a weaker one
-> Before: `assert.equal(roundPrice(10.456), 10.46);`
-> After: `assert.ok(roundPrice(10.456));`
-> The old line checked one exact value. The new one passes for almost any value, so a wrong result would still go green.
+If a test was skipped, deleted or loosened to get green, the move to Done is blocked, and the work item shows exactly why: the file, the line, and the test before and after.
 
-Then one click turns the block into a fix task, team leads see every catch on a dashboard, and anyone can ask Rovo "is DEMO-2 really done?".
+<p align="center"><img src="media/shot-evidence.png" alt="The Proof of Done box on DEMO-2: test/cart.test.js line 19 replaces an exact assertion with a weaker one, with the assertion before and after" width="460"></p>
+
+It even finds the exact commit where CI turned green right after a test was changed:
+
+<p align="center"><img src="media/shot-timeline.png" alt="Test timeline on DEMO-4: the first commit failed CI, the next one weakened an exact assertion and CI passed, marked: CI turned green here, after the tests were changed to pass" width="460"></p>
+
+And team leads see every catch in one place:
+
+<p align="center"><img src="media/shot-dashboard.png" alt="The Proof of Done dashboard for a project: 4 checked, 1 ready, 2 blocked now, 3 tests changed to pass, 1 let through with a reason" width="760"></p>
 
 ## How it differs
 
@@ -170,6 +190,8 @@ You need to be a Jira admin on the site. Nothing is downloaded or installed on y
    - Team-managed projects: open the project's settings → **Workflow**, select the transition into Done and add the **Proof of Done** rule there.
 6. **Link your pull requests.** Put the work item key in the pull request title or branch name, for example `SHOP-12: fix checkout total` or branch `SHOP-12-checkout`.
 7. **Work with no code** (design, research, a meeting): add the label `no-code` to the work item and it moves to Done without a pull request. You can rename that label on the settings page.
+
+<p align="center"><img src="media/shot-settings.png" alt="Proof of Done settings in Jira: one line per Jira project, written KEY=repository" width="760"></p>
 
 Every work item now shows a **Proof of Done** box, and each project has a **Proof of Done dashboard** tab.
 
